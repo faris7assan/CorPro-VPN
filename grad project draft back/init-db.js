@@ -1,0 +1,70 @@
+const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
+require('dotenv').config();
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: 'gradprojfb',
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+});
+
+async function run() {
+  try {
+    const client = await pool.connect();
+    console.log('✅ Connected to PostgreSQL Database');
+
+    // Create minimal users table (based on friend's server.js logic)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        failed_attempts INT DEFAULT 0,
+        lock_until TIMESTAMPTZ
+      )
+    `);
+
+    // Create minimal otp_codes table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        otp VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        last_sent TIMESTAMPTZ NOT NULL
+      )
+    `);
+
+    console.log('✅ Tables created successfully');
+
+    // Seeding User Requested by the prompt: ys5313944@gmail.com / Ys5926
+    const email = 'ys5313944@gmail.com';
+    const rawPass = 'Ys5926';
+    const hash = await bcrypt.hash(rawPass, 10);
+
+    const check = await client.query('SELECT * FROM users WHERE email=$1', [email]);
+    if (check.rows.length === 0) {
+      await client.query(
+        'INSERT INTO users(email, password_hash) VALUES($1, $2)',
+        [email, hash]
+      );
+      console.log('✅ First auto user inserted into the database!');
+    } else {
+      await client.query(
+        'UPDATE users SET password_hash=$1 WHERE email=$2',
+        [hash, email]
+      );
+      console.log('✅ User already existed, password updated.');
+    }
+
+    client.release();
+  } catch (err) {
+    console.error('❌ Error during database init:', err);
+  } finally {
+    await pool.end();
+  }
+}
+
+run();
