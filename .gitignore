@@ -19,6 +19,3 @@ Thumbs.db
 
 # Sensitive / local-only files
 CONTEXT.md
-**/nuke-db.js
-**/test-email.js
-**/setup-db.js
