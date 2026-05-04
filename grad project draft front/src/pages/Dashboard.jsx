@@ -494,13 +494,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard 
-          label="Client VPN IP" 
-          value={status === 'connected' ? clientIp : '---.---.---.---'} 
-          icon={Globe} 
-          trend={status === 'connected' ? 'Secured' : null}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard 
           label="Protocol" 
           value={hqGateway.protocol} 

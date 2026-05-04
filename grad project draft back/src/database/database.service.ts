@@ -13,6 +13,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       database: process.env.DB_NAME,
       password: process.env.DB_PASSWORD,
       port: parseInt(process.env.DB_PORT || '5432'),
+      ssl: { rejectUnauthorized: false },  // Required for Supabase
       // ── Connection resilience for remote VPS ──
       max: 10,                      // max pool size
       idleTimeoutMillis: 30000,     // close idle connections after 30s

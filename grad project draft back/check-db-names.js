@@ -10,6 +10,7 @@ async function test(name) {
     password: process.env.DB_PASSWORD,
     port: parseInt(process.env.DB_PORT || '5432', 10),
     connectionTimeoutMillis: 5000,
+    ssl: { rejectUnauthorized: false },  // Required for Supabase
   });
   try {
     const c = await p.connect();
