@@ -398,6 +398,12 @@ function runCmd(cmd, timeout = 10000) {
 // ─── Helper: find executables ─────────────────────────────────
 
 function findExe(name) {
+  // 1. Check bundled executables (so user doesn't need to install WireGuard app)
+  const localDir = app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, 'bin')
+  const localExe = path.join(localDir, name)
+  if (fs.existsSync(localExe)) return localExe
+
+  // 2. Fallback to system-installed WireGuard
   const dirs = ['C:\\Program Files\\WireGuard', 'C:\\Program Files (x86)\\WireGuard']
   for (const dir of dirs) {
     const full = path.join(dir, name)
@@ -605,12 +611,14 @@ ipcMain.handle('vpn:connect', async (_event, clientConfig) => {
 
   // ── Step 4: Install the tunnel service (with automatic retry) ──
   let installSuccess = false
+  let lastInstallError = ''
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       await runCmd(`"${wgExe}" /installtunnelservice "${CONF_PATH}"`, 15000)
       installSuccess = true
       break
     } catch (err) {
+      lastInstallError = err.message
       console.warn(`[CorpoVPN] Tunnel install attempt ${attempt} failed: ${err.message}`)
       if (attempt === 1) {
         // First attempt failed — clean up stale service and retry
@@ -626,7 +634,7 @@ ipcMain.handle('vpn:connect', async (_event, clientConfig) => {
     try { fs.unlinkSync(CONF_PATH) } catch {}
     return {
       success: false,
-      error: 'Failed to start WireGuard tunnel service. Please try connecting again.',
+      error: `Failed to start WireGuard tunnel service. Error: ${lastInstallError}`,
     }
   }
 
