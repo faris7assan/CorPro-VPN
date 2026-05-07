@@ -85,6 +85,9 @@ export default function Auth() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: 'https://corpo-vpn.vercel.app/verified.html',
+        }
       })
       
       if (signUpError) throw new Error(signUpError.message)
