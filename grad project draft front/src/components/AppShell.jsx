@@ -277,7 +277,7 @@ export default function AppShell() {
               <div className="h-4 w-px bg-white/10" />
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                V: 4.2.0-stable
+                V: 1.0.0
               </div>
             </div>
           </header>

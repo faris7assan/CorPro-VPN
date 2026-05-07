@@ -7,7 +7,7 @@ const { exec } = require('child_process')
 // Load environment variables from .env in project root
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') })
 
-const isDev = process.env.NODE_ENV !== 'production'
+const isDev = !app.isPackaged
 
 // ─────────────────────────────────────────────────────────────
 // COMPLIANCE: Full 30-Check System (keyed by check ID)
@@ -378,9 +378,9 @@ const CONFIG_DIR  = path.join(app.getPath('userData'), 'wireguard')
 const CONF_PATH   = path.join(CONFIG_DIR, `${TUNNEL_NAME}.conf`)
 const SAVED_CONFIG_PATH = path.join(app.getPath('userData'), 'vpn-config.json')
 
-const SERVER_PUBLIC_KEY = process.env.WG_SERVER_PUBLIC_KEY || ''
-const SERVER_ENDPOINT   = process.env.WG_SERVER_ENDPOINT || ''
-const SERVER_IP         = SERVER_ENDPOINT.split(':')[0]
+const SERVER_PUBLIC_KEY = 'pxtdzwoT1chXA+h/ZYWXrJMTz/Vr8oc29u7h+/KgxUQ='
+const SERVER_ENDPOINT   = '80.65.211.27:51820'
+const SERVER_IP         = '80.65.211.27'
 const SERVER_DNS        = '1.1.1.1'
 const ALLOWED_IPS       = '0.0.0.0/0'
 
@@ -748,6 +748,7 @@ function createWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#060818',
+    icon: path.join(__dirname, '../build/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corpo VPN | Zero-Trust Enterprise Security</title>
+    <meta name="description" content="WireGuard-powered encrypted tunnels with real-time compliance scanning for the modern enterprise.">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#060818',
+                            darker: '#03040c',
+                            card: 'rgba(255, 255, 255, 0.02)',
+                            border: 'rgba(255, 255, 255, 0.05)',
+                            cyan: '#06b6d4',
+                            purple: '#8b5cf6',
+                        }
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'fade-up': 'fadeUp 1s ease-out forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060818;
+            color: white;
+            overflow-x: hidden;
+        }
+        .glass-nav {
+            background: rgba(6, 8, 24, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateY(-5px);
+        }
+        .text-gradient {
+            background: linear-gradient(to right, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .mesh-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: 
+                radial-gradient(at 40% 20%, hsla(192,100%,40%,0.15) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(258,100%,66%,0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(192,100%,40%,0.1) 0px, transparent 50%);
+            z-index: -1;
+        }
+        .glow-button {
+            position: relative;
+        }
+        .glow-button::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, #06b6d4, #8b5cf6, #06b6d4);
+            z-index: -1;
+            border-radius: 9999px;
+            background-size: 400%;
+            animation: glowing 20s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .glow-button:hover::before {
+            opacity: 1;
+        }
+        @keyframes glowing {
+            0% { background-position: 0 0; }
+            50% { background-position: 400% 0; }
+            100% { background-position: 0 0; }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+    
+    <!-- Background Effects -->
+    <div class="mesh-bg fixed"></div>
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full mix-blend-screen filter blur-[100px] opacity-50 animate-blob"></div>
+        <div class="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full mix-blend-screen filter blur-[100px] opacity-50 animate-blob animation-delay-2000"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <i class="ph-bold ph-shield-check text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight text-white leading-none">Corpo <span class="font-light">VPN</span></h1>
+                </div>
+            </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium text-slate-300">
+                <a href="#features" class="hover:text-cyan-400 transition-colors">Features</a>
+                <a href="#security" class="hover:text-cyan-400 transition-colors">Security</a>
+                <a href="https://github.com/yahiasaad392/corpo-vpn" target="_blank" class="hover:text-cyan-400 transition-colors">GitHub</a>
+            </div>
+            <a href="https://github.com/yahiasaad392/corpo-vpn/releases/download/v1.0.0/Corpo.VPN.Setup.1.0.0.exe" class="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-semibold hover:bg-white/10 transition-colors text-white">
+                <i class="ph-bold ph-download-simple"></i> Download v1.0.0
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 relative z-10 text-center animate-fade-up">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold tracking-wide uppercase mb-8">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+                Version 1.0.0 is now live
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-black tracking-tighter mb-6 leading-[1.1]">
+                Zero-Trust Security for <br class="hidden md:block" />
+                <span class="text-gradient">The Modern Enterprise.</span>
+            </h1>
+            
+            <p class="mt-6 text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed mb-10">
+                WireGuard-powered encrypted tunnels combined with real-time OS compliance scanning. Secure your remote workforce with unparalleled performance.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://github.com/yahiasaad392/corpo-vpn/releases/download/v1.0.0/Corpo.VPN.Setup.1.0.0.exe" class="glow-button w-full sm:w-auto px-8 py-4 rounded-full bg-cyan-500 text-brand-darker font-bold text-lg flex items-center justify-center gap-2 hover:bg-cyan-400 transition-colors shadow-[0_0_40px_rgba(6,182,212,0.4)]">
+                    <i class="ph-bold ph-windows-logo text-xl"></i>
+                    Download for Windows
+                </a>
+                <a href="https://github.com/yahiasaad392/corpo-vpn" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-semibold text-lg flex items-center justify-center gap-2 hover:bg-white/10 transition-colors">
+                    <i class="ph-bold ph-github-logo text-xl"></i>
+                    View Source Code
+                </a>
+            </div>
+            <p class="mt-4 text-xs text-slate-500 font-mono">Requires Windows 10 or Windows 11 (64-bit)</p>
+        </div>
+
+        <!-- Dashboard Preview Image mock (Using CSS to simulate a beautiful UI mockup) -->
+        <div class="max-w-5xl mx-auto px-6 mt-20 animate-fade-up" style="animation-delay: 0.2s;">
+            <div class="rounded-2xl border border-white/10 bg-[#080a1e] shadow-2xl overflow-hidden relative">
+                <!-- Mac-like titlebar -->
+                <div class="h-8 bg-[#0a0c27] border-b border-white/5 flex items-center px-4 gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
+                </div>
+                <!-- UI Mockup -->
+                <div class="h-[400px] md:h-[600px] w-full flex items-center justify-center bg-gradient-to-b from-[#060818] to-[#03040c]">
+                    <div class="text-center">
+                        <div class="w-32 h-32 rounded-full border-4 border-cyan-500/20 flex items-center justify-center mx-auto mb-6 relative">
+                            <div class="absolute inset-0 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin"></div>
+                            <i class="ph-bold ph-shield-check text-5xl text-cyan-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-2">WireGuard Tunnel Active</h3>
+                        <p class="text-slate-400 font-mono text-sm">Target: Corpo VPN Gateway • 80.65.211.27</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-brand-darker border-t border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4">Engineered for the Enterprise</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">Corpo VPN combines state-of-the-art cryptography with endpoint health validation.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 rounded-2xl">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6">
+                        <i class="ph-bold ph-lock-key text-2xl text-cyan-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">WireGuard Protocol</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Utilizing the incredibly fast and modern WireGuard protocol. State-of-the-art cryptography ensures your data remains secure with zero performance bottlenecks.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 rounded-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 filter blur-[40px] rounded-full"></div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 relative z-10">
+                        <i class="ph-bold ph-scan text-2xl text-purple-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3 relative z-10">Endpoint Compliance</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed relative z-10">
+                        Zero-trust architecture means scanning the host OS before connecting. Checks include Firewall status, Antivirus definitions, BitLocker, and suspicious processes.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 rounded-2xl">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6">
+                        <i class="ph-bold ph-magic-wand text-2xl text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Auto Provisioning</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Say goodbye to manual .conf files. Peers are automatically provisioned on the VPS and synced to the desktop client immediately upon authentication.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-12 bg-[#020308]">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-2">
+                <i class="ph-fill ph-shield-check text-cyan-500 text-xl"></i>
+                <span class="font-bold text-white">Corpo VPN</span>
+            </div>
+            <p class="text-sm text-slate-500">
+                &copy; 2026 Corpo VPN Graduation Project. All rights reserved.
+            </p>
+            <div class="flex gap-4">
+                <a href="https://github.com/yahiasaad392/corpo-vpn" class="text-slate-500 hover:text-white transition-colors">
+                    <i class="ph-fill ph-github-logo text-2xl"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
