@@ -4,7 +4,7 @@ import { ChevronDown, Save, CheckCircle, Key, Wifi, AlertTriangle, Crown, UserPl
 import { AUTH_API as API, VPN_API } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
-const PROTOCOLS = ['WireGuard', 'OpenVPN (UDP)', 'OpenVPN (TCP)', 'IKEv2']
+const PROTOCOLS = ['Corpo Tunnel', 'OpenVPN (UDP)', 'OpenVPN (TCP)', 'IKEv2']
 
 function SectionHeader({ title, description }) {
   return (
@@ -82,7 +82,7 @@ export default function Settings() {
     analytics:       false,
   })
 
-  const [protocol, setProtocol] = useState('WireGuard')
+  const [protocol, setProtocol] = useState('Corpo Tunnel')
   const [protocolOpen, setProtocolOpen] = useState(false)
   const [startup, setStartup] = useState('minimize')
 
@@ -204,7 +204,7 @@ export default function Settings() {
 
           {/* WIREGUARD CONFIG — READ-ONLY (AUTO-PROVISIONED) */}
           <div className="glass-card p-6 border-cyan-500/20">
-            <SectionHeader title="🔑 WireGuard Configuration" description="Your VPN peer is automatically provisioned when you register" />
+            <SectionHeader title="🔑 Corpo Tunnel Configuration" description="Your VPN peer is automatically provisioned when you register" />
             
             <div className="space-y-4">
               {/* Server info (read-only) */}
@@ -212,7 +212,7 @@ export default function Settings() {
                 <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Server Details</p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div><span className="text-slate-500">Endpoint:</span> <span className="text-cyan-400 font-mono">80.65.211.27:51820</span></div>
-                  <div><span className="text-slate-500">Protocol:</span> <span className="text-cyan-400 font-mono">WireGuard</span></div>
+                  <div><span className="text-slate-500">Protocol:</span> <span className="text-cyan-400 font-mono">Corpo Tunnel</span></div>
                   <div><span className="text-slate-500">DNS:</span> <span className="text-cyan-400 font-mono">1.1.1.1</span></div>
                   <div><span className="text-slate-500">Routing:</span> <span className="text-cyan-400 font-mono">0.0.0.0/0 (all traffic)</span></div>
                 </div>

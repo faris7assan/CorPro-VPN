@@ -99,6 +99,23 @@ export default function Dashboard() {
     return () => { if (statusInterval.current) clearInterval(statusInterval.current) }
   }, [status, isElectron])
 
+  // On mount, restore active VPN status if running
+  useEffect(() => {
+    if (isElectron) {
+      window.electronAPI.vpnStatus().then(st => {
+        if (st.connected) {
+          setStatus('connected')
+          setLiveStats({
+            rx: st.rx || '0 B',
+            tx: st.tx || '0 B',
+            handshake: st.latestHandshake || '--',
+            endpoint: st.endpoint || '--',
+          })
+        }
+      })
+    }
+  }, [isElectron])
+
   // Session timer
   useEffect(() => {
     let interval
@@ -479,7 +496,7 @@ export default function Dashboard() {
           <h2 className={`text-4xl font-black tracking-tight transition-all duration-500 ${
             status === 'connected' ? 'text-white' : status === 'error' ? 'text-red-400' : 'text-slate-500'
           }`}>
-            {status === 'connected' ? 'WireGuard Tunnel Active' : status === 'connecting' ? 'WireGuard Handshake...' : status === 'error' ? 'Connection Failed' : 'Encrypted Tunnel Idle'}
+            {status === 'connected' ? 'Corpo Tunnel Active' : status === 'connecting' ? 'Establishing Corpo Tunnel...' : status === 'error' ? 'Connection Failed' : 'Encrypted Tunnel Idle'}
           </h2>
           <p className="text-slate-500 font-medium">
              Target: <span className="text-cyan-500">{hqGateway.name}</span> • {hqGateway.gatewayIp}

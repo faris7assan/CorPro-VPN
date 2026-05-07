@@ -43,20 +43,20 @@ export const connectionStats = {
 export const initialLogs = [
   { id: 1,  time: '09:00:01', level: 'info',    message: 'System initialization complete.' },
   { id: 2,  time: '09:00:05', level: 'info',    message: 'Local identity check passed.' },
-  { id: 3,  time: '09:00:10', level: 'info',    message: 'Attempting WireGuard handshake to 203.0.113.50:51820...' },
-  { id: 4,  time: '09:00:12', level: 'info',    message: 'Peer public key exchange in progress...' },
-  { id: 5,  time: '09:00:15', level: 'info',    message: 'WireGuard handshake completed successfully.' },
+  { id: 3,  time: '09:00:10', level: 'info',    message: 'Attempting Corpo Tunnel handshake to 203.0.113.50:51820...' },
+  { id: 4,  time: '09:00:12', level: 'info',    message: 'Endpoint compliance verified. Policy enforced.' },
+  { id: 5,  time: '09:00:15', level: 'info',    message: 'Corpo Tunnel handshake completed successfully.' },
   { id: 6,  time: '09:00:16', level: 'info',    message: 'Tunnel established. Virtual IP: 10.10.0.3.' },
   { id: 7,  time: '09:00:18', level: 'info',    message: 'DNS set to 1.1.1.1 via tunnel.' },
   { id: 8,  time: '09:00:20', level: 'info',    message: 'All traffic routed through VPN. Connection protected.' },
 ];
 
 export const liveLogs = [
-  { level: 'info',    message: 'WireGuard keepalive sent to 203.0.113.50.' },
-  { level: 'info',    message: 'Session heart-beat: OK.' },
-  { level: 'warning', message: 'Latency spike detected on endpoint.' },
-  { level: 'info',    message: 'WireGuard re-keying initiated.' },
-  { level: 'info',    message: 'Tunnel integrity verified.' },
+  { level: 'info',    message: 'Corpo Tunnel keepalive sent to 203.0.113.50.' },
+  { level: 'info',    message: 'Bytes received: 1.2 GB / Sent: 450 MB.' },
+  { level: 'warning', message: 'Latency spike detected to gateway (145ms).' },
+  { level: 'info',    message: 'Corpo Tunnel re-keying initiated.' },
+  { level: 'error',   message: 'Connection dropped unexpectedly. Attempting reconnect.' },
   { level: 'success', message: 'Compliance check passed: Device is compliant.' },
 ];
 
