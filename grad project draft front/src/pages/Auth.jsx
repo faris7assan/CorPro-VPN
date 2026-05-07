@@ -152,7 +152,7 @@ export default function Auth() {
     setLoading(true)
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://yahiasaad392.github.io/corpo-vpn/reset-password.html',
+        redirectTo: 'https://corpo-vpn.vercel.app/reset-password.html',
       })
       if (resetError) throw new Error(resetError.message)
       setSuccess('Password reset email sent! Check your inbox.')
