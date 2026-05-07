@@ -1,20 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Shield, Minus, Square, X, Copy } from 'lucide-react'
-
-const API = 'http://127.0.0.1:3001/api/auth'
-const POLICY_API = 'http://127.0.0.1:3001/api/policy'
+import { supabase } from '../lib/supabase'
+import { AUTH_API, POLICY_API } from '../lib/api'
 
 export default function Auth() {
   const navigate = useNavigate()
-  const [step, setStep] = useState('login')       // 'login' | 'register' | 'otp'
+  const [step, setStep] = useState('login')       // 'login' | 'register' | 'forgot-password' | 'reset-password'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [cooldown, setCooldown] = useState(0)
   const [isMaximized, setIsMaximized] = useState(false)
 
   // ── Track maximize state for window controls ──
@@ -33,12 +30,16 @@ export default function Auth() {
     if (token) navigate('/app/dashboard', { replace: true })
   }, [navigate])
 
-  // Cooldown timer
+  // Listen for Supabase auth state changes (e.g. password reset redirect)
   useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setTimeout(() => setCooldown(c => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [cooldown])
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setStep('reset-password')
+        setSuccess('You can now set a new password.')
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   const clearMessages = () => { setError(''); setSuccess('') }
   
@@ -47,11 +48,8 @@ export default function Auth() {
   };
   
   const validatePassword = (password, userEmail) => {
-    // Exempt these emails from the complex password check
     const exemptEmails = ['ys5313944@gmail.com', 'yahiasaad1904@gmail.com'];
     if (exemptEmails.includes(userEmail)) return true;
-    
-    // 8+ chars, 1 upper, 1 lower, 1 special
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.{8,})/.test(password);
   };
 
@@ -65,7 +63,7 @@ export default function Auth() {
   ];
   
   const allPasswordChecksPassed = passwordChecks.every(c => c.test(password));
-  const isFormValid = validateEmail(email) && (step === 'otp' || (step === 'register' ? allPasswordChecksPassed : validatePassword(password, email)));
+  const isFormValid = validateEmail(email) && (step === 'register' ? allPasswordChecksPassed : password.length > 0);
 
   // ── Register ───────────────────────────────────────────
   const handleRegister = async (e) => {
@@ -73,15 +71,36 @@ export default function Auth() {
     clearMessages()
     setLoading(true)
     try {
-      const res = await fetch(`${API}/register`, {
+      // Step 1: Check if email is in a policy (backend validates)
+      const policyRes = await fetch(`${POLICY_API}/check-email?email=${encodeURIComponent(email)}`)
+      const policyData = await policyRes.json()
+      
+      // Allow exempt emails and policy-listed emails
+      const exemptEmails = ['ys5313944@gmail.com', 'yahiasaad1904@gmail.com']
+      if (!exemptEmails.includes(email) && !policyData.allowed) {
+        throw new Error('Your email is not associated with any organization. Contact your admin to be added to a VPN policy.')
+      }
+
+      // Step 2: Sign up with Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      
+      if (signUpError) throw new Error(signUpError.message)
+
+      // Step 3: Create local user record in backend (provisions VPN peer)
+      const regRes = await fetch(`${AUTH_API}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Registration failed')
+      const regData = await regRes.json()
+      if (!regRes.ok) throw new Error(regData.message || 'Registration failed')
+
       setSuccess('Account created! Please log in.')
       setStep('login')
+      setPassword('')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -95,38 +114,29 @@ export default function Auth() {
     clearMessages()
     setLoading(true)
     try {
-      const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      // Sign in with Supabase
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Login failed')
-      setSuccess('OTP sent to your email!')
-      setStep('otp')
-      setCooldown(30)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  // ── Verify OTP ─────────────────────────────────────────
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault()
-    clearMessages()
-    setLoading(true)
-    try {
-      const res = await fetch(`${API}/verify-otp`, {
+      if (signInError) throw new Error(signInError.message)
+
+      const accessToken = data.session.access_token
+
+      // Sync with backend to get role
+      const syncRes = await fetch(`${AUTH_API}/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Invalid OTP')
-      localStorage.setItem('vpn_token', data.token)
-      localStorage.setItem('vpn_user', JSON.stringify({ email, role: data.role || 'user' }))
+      const syncData = await syncRes.json()
+      const role = syncData.role || 'user'
+
+      // Store session info
+      localStorage.setItem('vpn_token', accessToken)
+      localStorage.setItem('vpn_user', JSON.stringify({ email, role }))
+      
       navigate('/app/dashboard', { replace: true })
     } catch (err) {
       setError(err.message)
@@ -135,40 +145,17 @@ export default function Auth() {
     }
   }
 
-  // ── Resend OTP ─────────────────────────────────────────
-  const handleResend = async () => {
-    clearMessages()
-    try {
-      const res = await fetch(`${API}/resend-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Resend failed')
-      setSuccess('New code sent!')
-      setCooldown(30)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  // ── Forgot Password (Send OTP) ───────────────
+  // ── Forgot Password (Send Reset Email via Supabase) ───
   const handleForgotPassword = async (e) => {
     e.preventDefault()
     clearMessages()
     setLoading(true)
     try {
-      const res = await fetch(`${API}/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/',
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Forgot password failed')
-      setSuccess('Reset code sent to your email!')
-      setStep('reset-password')
-      setCooldown(30)
+      if (resetError) throw new Error(resetError.message)
+      setSuccess('Password reset email sent! Check your inbox.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -176,7 +163,7 @@ export default function Auth() {
     }
   }
 
-  // ── Reset Password ────────────────────────────
+  // ── Reset Password (after clicking email link) ────────
   const handleResetPassword = async (e) => {
     e.preventDefault()
     clearMessages()
@@ -186,17 +173,13 @@ export default function Auth() {
     }
     setLoading(true)
     try {
-      const res = await fetch(`${API}/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp, newPassword: password }),
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Reset failed')
+      if (updateError) throw new Error(updateError.message)
       setSuccess('Password updated! Please log in.')
       setStep('login')
       setPassword('')
-      setOtp('')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -305,7 +288,7 @@ export default function Auth() {
             <div style={styles.logoIcon}>🔐</div>
             <h1 style={styles.title}>Corpo VPN</h1>
             <p style={styles.subtitle}>
-              {step === 'otp' ? 'Enter verification code' : step === 'register' ? 'Create your account' : 'Sign in to continue'}
+              {step === 'register' ? 'Create your account' : step === 'forgot-password' ? 'Reset your password' : step === 'reset-password' ? 'Set new password' : 'Sign in to continue'}
             </p>
           </div>
 
@@ -397,46 +380,6 @@ export default function Auth() {
           </form>
         )}
 
-        {/* ── OTP FORM ── */}
-        {step === 'otp' && (
-          <form onSubmit={handleVerifyOtp} style={styles.form}>
-            <p style={styles.otpInfo}>
-              A 6-digit code was sent to <strong style={{ color: '#00f5ff' }}>{email}</strong>
-            </p>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Verification Code</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                required
-                maxLength={6}
-                style={{ ...styles.input, ...styles.otpInput }}
-              />
-            </div>
-            <button type="submit" disabled={loading || otp.length !== 6} style={styles.btn}>
-              {loading ? 'Verifying...' : 'Verify Code'}
-            </button>
-            <div style={styles.resendWrap}>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={cooldown > 0}
-                style={{
-                  ...styles.resendBtn,
-                  opacity: cooldown > 0 ? 0.4 : 1,
-                  cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
-              </button>
-              <span style={styles.switchLink} onClick={() => { setStep('login'); setOtp(''); clearMessages() }}>
-                ← Back to login
-              </span>
-            </div>
-          </form>
-        )}
         {/* ── FORGOT PASSWORD FORM ── */}
         {step === 'forgot-password' && (
           <form onSubmit={handleForgotPassword} style={styles.form}>
@@ -452,7 +395,7 @@ export default function Auth() {
               />
             </div>
             <button type="submit" disabled={loading || !validateEmail(email)} style={{...styles.btn, opacity: (loading || !validateEmail(email)) ? 0.5 : 1, cursor: (loading || !validateEmail(email)) ? 'not-allowed' : 'pointer'}}>
-              {loading ? 'Sending...' : 'Send Reset Code'}
+              {loading ? 'Sending...' : 'Send Reset Email'}
             </button>
             <p style={styles.switchText}>
               <span style={styles.switchLink} onClick={() => { setStep('login'); clearMessages() }}>
@@ -462,24 +405,9 @@ export default function Auth() {
           </form>
         )}
 
-        {/* ── RESET PASSWORD FORM ── */}
+        {/* ── RESET PASSWORD FORM (after clicking email link) ── */}
         {step === 'reset-password' && (
           <form onSubmit={handleResetPassword} style={styles.form}>
-             <p style={styles.otpInfo}>
-              Enter the reset code sent to <strong style={{ color: '#00f5ff' }}>{email}</strong>
-            </p>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Reset Code</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                required
-                maxLength={6}
-                style={{ ...styles.input, ...styles.otpInput }}
-              />
-            </div>
             <div style={styles.inputGroup}>
               <label style={styles.label}>New Password</label>
               <input
@@ -493,7 +421,7 @@ export default function Auth() {
               {renderPasswordDots()}
               {renderPasswordChecklist()}
             </div>
-            <button type="submit" disabled={loading || otp.length !== 6 || !allPasswordChecksPassed} style={{...styles.btn, opacity: (loading || otp.length !== 6 || !allPasswordChecksPassed) ? 0.5 : 1, cursor: (loading || otp.length !== 6 || !allPasswordChecksPassed) ? 'not-allowed' : 'pointer'}}>
+            <button type="submit" disabled={loading || !allPasswordChecksPassed} style={{...styles.btn, opacity: (loading || !allPasswordChecksPassed) ? 0.5 : 1, cursor: (loading || !allPasswordChecksPassed) ? 'not-allowed' : 'pointer'}}>
               {loading ? 'Updating...' : 'Update Password'}
             </button>
             <p style={styles.switchText}>
@@ -588,12 +516,6 @@ const styles = {
     outline: 'none',
     transition: 'border-color 0.2s',
   },
-  otpInput: {
-    textAlign: 'center',
-    fontSize: 24,
-    letterSpacing: 12,
-    fontWeight: 700,
-  },
   btn: {
     marginTop: 4,
     padding: '14px',
@@ -616,27 +538,6 @@ const styles = {
     color: '#00f5ff',
     cursor: 'pointer',
     fontWeight: 500,
-  },
-  otpInfo: {
-    color: '#94a3b8',
-    fontSize: 14,
-    textAlign: 'center',
-    margin: '0 0 4px',
-    lineHeight: 1.5,
-  },
-  resendWrap: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  resendBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#7c3aed',
-    fontSize: 13,
-    fontWeight: 500,
-    padding: 0,
   },
   errorBox: {
     background: 'rgba(239, 68, 68, 0.12)',

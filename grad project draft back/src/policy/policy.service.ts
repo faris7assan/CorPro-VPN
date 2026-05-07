@@ -1,20 +1,9 @@
 import { Injectable, BadRequestException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class PolicyService {
-  private transporter: nodemailer.Transporter;
-
-  constructor(private db: DatabaseService) {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-  }
+  constructor(private db: DatabaseService) {}
 
   // ── Helper: require caller to be admin ──
   private async requireAdmin(callerEmail: string) {
@@ -138,72 +127,24 @@ export class PolicyService {
     return result.rows[0];
   }
 
-  // ── Notify admins about compliance failures (combined: critical + warning in one email) ──
+  // ── Notify admins about compliance failures ──
+  // POSTPONED: Email notifications are logged to console until SMTP is configured.
+  // This can be re-enabled later with a transactional email service (e.g., Resend, SendGrid).
   async notifyCompliance(userEmail: string, criticalFails: string[], warningFails: string[]) {
-    const adminsResult = await this.db.pool.query(
-      "SELECT email FROM auth_users WHERE role='admin'"
-    );
-
-    if (adminsResult.rows.length === 0) return { message: 'No admins to notify' };
-
-    const adminEmails = adminsResult.rows.map(r => r.email);
     const hasCritical = criticalFails && criticalFails.length > 0;
     const hasWarning = warningFails && warningFails.length > 0;
 
-    // Build subject
-    const subject = hasCritical
-      ? `🚨 BLOCKED: ${userEmail} failed compliance — ${criticalFails.length} critical, ${warningFails.length} warning`
-      : `⚠️ WARNING: ${userEmail} connected with ${warningFails.length} compliance issue(s)`;
-
-    // Build email body with sections
-    let body = '';
-
     if (hasCritical) {
-      body += `🚨 VPN COMPLIANCE ALERT\n\n`;
-      body += `User: ${userEmail}\n`;
-      body += `Status: CONNECTION BLOCKED\n\n`;
-    } else {
-      body += `⚠️ VPN COMPLIANCE WARNING\n\n`;
-      body += `User: ${userEmail}\n`;
-      body += `Status: CONNECTION ALLOWED (with warnings)\n\n`;
+      console.log(`🚨 [COMPLIANCE ALERT] User ${userEmail} BLOCKED — ${criticalFails.length} critical failures: ${criticalFails.join(', ')}`);
     }
-
-    if (hasCritical) {
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      body += `🔴 CRITICAL CHECKS FAILED (${criticalFails.length})\n`;
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      criticalFails.forEach(c => { body += `  ✗ ${c}\n`; });
-      body += `\n`;
-    }
-
     if (hasWarning) {
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      body += `🟡 WARNING CHECKS FAILED (${warningFails.length})\n`;
-      body += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      warningFails.forEach(c => { body += `  ⚠ ${c}\n`; });
-      body += `\n`;
+      console.log(`⚠️ [COMPLIANCE WARNING] User ${userEmail} connected with ${warningFails.length} warning(s): ${warningFails.join(', ')}`);
     }
 
-    if (hasCritical) {
-      body += `Action Required: Please review this user's device and resolve the critical issues before they can reconnect.\n\n`;
-    } else {
-      body += `The user was allowed to connect, but the warning issues above should be reviewed.\n\n`;
-    }
+    // TODO: Re-enable email notifications when SMTP/transactional email is configured
+    // const adminsResult = await this.db.pool.query("SELECT email FROM auth_users WHERE role='admin'");
+    // Send email to admins...
 
-    body += `— Corpo VPN Security System`;
-
-    try {
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: adminEmails.join(', '),
-        subject,
-        text: body,
-      });
-      console.log(`✅ Compliance email sent to ${adminEmails.length} admin(s) about ${userEmail} [critical: ${criticalFails.length}, warning: ${warningFails.length}]`);
-    } catch (e) {
-      console.error('❌ Compliance email failed:', e.message);
-    }
-
-    return { message: 'Admins notified' };
+    return { message: 'Compliance event logged (email notifications postponed)' };
   }
 }

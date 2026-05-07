@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { Shield, LayoutDashboard, Share2, Settings, FileText, LogOut, Crown, User, Minus, Square, X, ShieldCheck, ClipboardList, Copy } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { VPN_API } from '../lib/api'
 
 export default function AppShell() {
   const navigate = useNavigate()
@@ -60,7 +62,7 @@ export default function AppShell() {
     try {
       const email = currentUser?.email
       if (email) {
-        await fetch('http://127.0.0.1:3001/api/vpn/disconnect', {
+        await fetch(`${VPN_API}/disconnect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email }),
@@ -70,8 +72,16 @@ export default function AppShell() {
       console.warn('Session end on sign-out failed:', e)
     }
 
+    // Sign out of Supabase
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.warn('Supabase sign-out failed:', e)
+    }
+
     localStorage.removeItem('vpn_token')
     localStorage.removeItem('vpn_user')
+    localStorage.removeItem('vpn_compliance_status')
     navigate('/', { replace: true })
   }
 

@@ -801,10 +801,21 @@ app.whenReady().then(() => {
   })
 })
 
+let isQuitting = false;
+
 // On app quit, make sure no orphaned tunnel remains
-app.on('before-quit', async () => {
-  await forceRemoveTunnel()
-})
+app.on('before-quit', async (event) => {
+  if (!isQuitting) {
+    event.preventDefault();
+    isQuitting = true;
+    try {
+      await forceRemoveTunnel();
+    } catch (e) {
+      console.error('Failed to remove tunnel on quit', e);
+    }
+    app.quit();
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

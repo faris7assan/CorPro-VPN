@@ -5,10 +5,7 @@ import StatsCard from '../components/StatsCard'
 import ComplianceSidebar from '../components/ComplianceSidebar'
 import { hqGateway } from '../data/mockData'
 import { ALL_CHECKS_MAP } from '../data/complianceChecks'
-
-const POLICY_API = 'http://127.0.0.1:3001/api/policy'
-const AUTH_API = 'http://127.0.0.1:3001/api/auth'
-const VPN_API = 'http://127.0.0.1:3001/api/vpn'
+import { POLICY_API, AUTH_API, VPN_API } from '../lib/api'
 
 export default function Dashboard() {
   // Check user role

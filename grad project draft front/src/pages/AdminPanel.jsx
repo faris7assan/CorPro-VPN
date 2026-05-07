@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Crown, Users, Shield, UserPlus, UserMinus, Search, RefreshCw } from 'lucide-react'
-
-const API = 'http://127.0.0.1:3001/api/auth'
+import { AUTH_API as API } from '../lib/api'
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([])

@@ -1,23 +1,17 @@
-import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import * as bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
-import * as nodemailer from 'nodemailer';
-import * as otpGenerator from 'otp-generator';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class AuthService {
-  private transporter: nodemailer.Transporter;
+  private supabase: SupabaseClient;
   private vpsApi: string;
 
   constructor(private db: DatabaseService) {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    this.supabase = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    );
     this.vpsApi = process.env.VPN_SERVER_API || 'http://80.65.211.27:3000';
   }
 
@@ -77,19 +71,17 @@ export class AuthService {
     }
   }
 
-  async register(email: string, password: string) {
+  // ── Register: Create local user row + provision VPN ──
+  // Supabase signup is handled on the frontend; this creates the app-level record
+  async register(email: string) {
     try {
-      console.log('--- Registering:', email);
+      console.log('--- Registering local user:', email);
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.{8,})/;
       const exemptEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
 
       if (!emailRegex.test(email)) {
         throw new BadRequestException('Invalid email format');
-      }
-      if (!exemptEmails.includes(email) && !passwordRegex.test(password)) {
-        throw new BadRequestException('Password must be 8+ chars, have upper/lower/special characters');
       }
 
       const existingUser = await this.db.pool.query("SELECT password_hash, role FROM auth_users WHERE email=$1", [email]);
@@ -106,24 +98,32 @@ export class AuthService {
         }
       }
 
-      const hash = await bcrypt.hash(password, 10);
-      
       if (existingUser.rows.length > 0) {
         if (isPendingAdmin) {
           await this.db.pool.query(
-            "UPDATE auth_users SET password_hash=$1 WHERE email=$2",
-            [hash, email]
+            "UPDATE auth_users SET password_hash='SUPABASE_AUTH' WHERE email=$1",
+            [email]
           );
           console.log(`✅ Pending admin ${email} registered successfully`);
           return { message: "Admin account registered successfully" };
+        } else if (existingUser.rows[0].password_hash === 'SUPABASE_AUTH') {
+          // Already synced — just return success
+          return { message: "User already registered" };
         } else {
-          throw new HttpException('User already exists', HttpStatus.CONFLICT);
+          // Migration: existing user from old auth system → update to Supabase Auth
+          // Keep their existing role (could be admin)
+          await this.db.pool.query(
+            "UPDATE auth_users SET password_hash='SUPABASE_AUTH' WHERE email=$1",
+            [email]
+          );
+          console.log(`✅ Migrated existing user ${email} to Supabase Auth (role: ${existingUser.rows[0].role})`);
+          return { message: "Account migrated to new auth system" };
         }
       } else {
         // All new registrations are 'user' role by default
         await this.db.pool.query(
-          "INSERT INTO auth_users(email, password_hash, role) VALUES($1, $2, 'user')",
-          [email, hash]
+          "INSERT INTO auth_users(email, password_hash, role) VALUES($1, 'SUPABASE_AUTH', 'user')",
+          [email]
         );
         console.log('✅ User registered successfully');
 
@@ -141,241 +141,50 @@ export class AuthService {
     }
   }
 
-  async forgotPassword(email: string) {
-    console.log('--- Forgot Password:', email);
-    const userResult = await this.db.pool.query("SELECT * FROM auth_users WHERE email=$1", [email]);
-    if (userResult.rows.length === 0) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
-    const expire = new Date(Date.now() + 10 * 60000);
-
-    await this.db.pool.query("DELETE FROM auth_otp_codes WHERE email=$1", [email]);
-    await this.db.pool.query(
-      "INSERT INTO auth_otp_codes(email, otp, expires_at, last_sent) VALUES($1, $2, $3, NOW())",
-      [email, otp, expire]
+  // ── Sync: Called after Supabase login to get/create local user + return role ──
+  async syncUser(email: string) {
+    const existing = await this.db.pool.query(
+      "SELECT id, role, wg_private_key FROM auth_users WHERE email=$1",
+      [email]
     );
 
-    try {
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "VPN Password Reset Code",
-        text: `Your password reset code is ${otp}. It expires in 10 minutes.`
-      });
-      console.log('✅ Reset Email Sent');
-    } catch (e) {
-      console.error('❌ Email Error:', e);
-      throw new HttpException("Error sending reset email", HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    return { message: "Reset code sent" };
-  }
-
-  async resetPassword(resetDto: any) {
-    const { email, otp, newPassword } = resetDto;
-    console.log('--- Resetting Password:', email);
-
-    const otpResult = await this.db.pool.query(
-      "SELECT * FROM auth_otp_codes WHERE email=$1 AND otp=$2",
-      [email, otp]
-    );
-
-    if (otpResult.rows.length === 0) {
-      throw new BadRequestException("Invalid reset code");
-    }
-
-    const record = otpResult.rows[0];
-    if (new Date(record.expires_at) < new Date()) {
-      throw new BadRequestException("Reset code expired");
-    }
-
-    const hash = await bcrypt.hash(newPassword, 10);
-    await this.db.pool.query("UPDATE auth_users SET password_hash=$1 WHERE email=$2", [hash, email]);
-    await this.db.pool.query("DELETE FROM auth_otp_codes WHERE email=$1", [email]);
-
-    console.log('✅ Password reset successfully');
-    return { message: "Password updated" };
-  }
-
-  async changePassword(changeDto: any) {
-    const { email, oldPassword, newPassword } = changeDto;
-    console.log('--- Changing Password:', email);
-
-    const userResult = await this.db.pool.query("SELECT * FROM auth_users WHERE email=$1", [email]);
-    if (userResult.rows.length === 0) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    const dbUser = userResult.rows[0];
-    const valid = await bcrypt.compare(oldPassword, dbUser.password_hash);
-    if (!valid) {
-      throw new UnauthorizedException("Incorrect current password");
-    }
-
-    const hash = await bcrypt.hash(newPassword, 10);
-    await this.db.pool.query("UPDATE auth_users SET password_hash=$1 WHERE email=$2", [hash, email]);
-
-    console.log('✅ Password changed successfully');
-    return { message: "Password updated" };
-  }
-
-  async login(email: string, password: string, ip: string) {
-    try {
-      console.log('--- Login Attempt:', email);
-      const userResult = await this.db.pool.query(
-        "SELECT * FROM auth_users WHERE email=$1",
-        [email]
-      );
-
-      if (userResult.rows.length === 0) {
-        throw new UnauthorizedException("User not found");
-      }
-
-      const dbUser = userResult.rows[0];
-
-      if (dbUser.lock_until && new Date(dbUser.lock_until) > new Date()) {
-        throw new ForbiddenException("Account locked");
-      }
-
-      const valid = await bcrypt.compare(password, dbUser.password_hash);
-
-      if (!valid) {
-        const attempts = (dbUser.failed_attempts || 0) + 1;
-        if (attempts >= 5) {
-          await this.db.pool.query(
-            "UPDATE auth_users SET failed_attempts=$1, lock_until=NOW()+INTERVAL '15 minutes' WHERE email=$2",
-            [attempts, email]
-          );
-          throw new ForbiddenException("Account locked for 15 minutes");
-        }
-        await this.db.pool.query(
-          "UPDATE auth_users SET failed_attempts=$1 WHERE email=$2",
-          [attempts, email]
-        );
-        throw new UnauthorizedException("Wrong password");
-      }
+    if (existing.rows.length === 0) {
+      // First-time login — create local record
+      const exemptEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
+      const role = exemptEmails.includes(email) ? 'admin' : 'user';
 
       await this.db.pool.query(
-        "UPDATE auth_users SET failed_attempts=0, lock_until=NULL WHERE email=$1",
-        [email]
+        "INSERT INTO auth_users(email, password_hash, role) VALUES($1, 'SUPABASE_AUTH', $2)",
+        [email, role]
       );
 
-      const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
-      const expire = new Date(Date.now() + 2 * 60000);
-
-      await this.db.pool.query("DELETE FROM auth_otp_codes WHERE email=$1", [email]);
-      await this.db.pool.query(
-        "INSERT INTO auth_otp_codes(email, otp, expires_at, last_sent) VALUES($1, $2, $3, NOW())",
-        [email, otp, expire]
-      );
-
-      try {
-        await this.transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: email,
-          subject: "Your VPN Login Code",
-          text: `Your OTP code is ${otp}`
-        });
-        console.log('✅ OTP Email Sent');
-      } catch (e) {
-        console.error('❌ Email Error DETAILED:', e);
-        throw new HttpException("Error sending email: " + e.message, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-
-      return { status: "OTP_SENT" };
-    } catch (error) {
-      console.error('❌ Login Error:', error.message);
-      throw error;
-    }
-  }
-
-  async verifyOtp(email: string, otp: string) {
-    try {
-      const result = await this.db.pool.query(
-        "SELECT * FROM auth_otp_codes WHERE email=$1 AND otp=$2",
-        [email, otp]
-      );
-
-      if (result.rows.length === 0) {
-        throw new UnauthorizedException("Invalid OTP");
-      }
-
-      const record = result.rows[0];
-      if (new Date(record.expires_at) < new Date()) {
-        throw new UnauthorizedException("OTP expired");
-      }
-
-      // Get the user's role from DB
-      const userResult = await this.db.pool.query(
-        "SELECT role FROM auth_users WHERE email=$1",
-        [email]
-      );
-      const role = userResult.rows[0]?.role || 'user';
-
-      // Auto-provision VPN config if user doesn't have one yet (existing users)
-      const configCheck = await this.db.pool.query(
-        'SELECT wg_private_key FROM auth_users WHERE email=$1',
-        [email]
-      );
-      if (configCheck.rows.length > 0 && !configCheck.rows[0].wg_private_key) {
-        console.log(`[Auth] User ${email} has no VPN config — auto-provisioning...`);
-        this.provisionVpnPeer(email).catch(err => {
-          console.error('[Auth] Background VPN provisioning error:', err.message);
-        });
-      }
-
-      // Embed role in JWT so frontend knows immediately after login
-      const token = jwt.sign(
-        { user: email, role },
-        process.env.JWT_SECRET || 'secret',
-        { expiresIn: "7d" }
-      );
-
-      return { token, role };
-    } catch (error) {
-      console.error('❌ Verify Error:', error.message);
-      throw error;
-    }
-  }
-
-  async resendOtp(email: string) {
-    try {
-      const record = await this.db.pool.query(
-        "SELECT last_sent FROM auth_otp_codes WHERE email=$1",
-        [email]
-      );
-
-      if (record.rows.length > 0) {
-        const last = new Date(record.rows[0].last_sent);
-        const now = new Date();
-        if ((now.getTime() - last.getTime()) / 1000 < 30) {
-          throw new HttpException("Wait before requesting new OTP", HttpStatus.TOO_MANY_REQUESTS);
-        }
-      }
-
-      const otp = otpGenerator.generate(6, { upperCaseAlphabets: false, specialChars: false, lowerCaseAlphabets: false });
-      const expire = new Date(Date.now() + 2 * 60000);
-
-      await this.db.pool.query("DELETE FROM auth_otp_codes WHERE email=$1", [email]);
-      await this.db.pool.query(
-        "INSERT INTO auth_otp_codes(email, otp, expires_at, last_sent) VALUES($1, $2, $3, NOW())",
-        [email, otp, expire]
-      );
-
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Your VPN Login Code",
-        text: `Your new OTP code is ${otp}`
+      // Auto-provision VPN peer (non-blocking)
+      this.provisionVpnPeer(email).catch(err => {
+        console.error('[Auth] Background VPN provisioning error:', err.message);
       });
 
-      return { status: "OTP_RESENT" };
-    } catch (error) {
-      console.error('❌ Resend Error:', error.message);
-      throw error;
+      console.log(`✅ Local user synced: ${email} (role: ${role})`);
+      return { role };
     }
+
+    // Auto-provision VPN config if user doesn't have one yet
+    if (!existing.rows[0].wg_private_key) {
+      console.log(`[Auth] User ${email} has no VPN config — auto-provisioning...`);
+      this.provisionVpnPeer(email).catch(err => {
+        console.error('[Auth] Background VPN provisioning error:', err.message);
+      });
+    }
+
+    return { role: existing.rows[0].role };
+  }
+
+  // ── Verify Supabase Token (used by JWT guard) ──
+  async verifySupabaseToken(token: string) {
+    const { data: { user }, error } = await this.supabase.auth.getUser(token);
+    if (error || !user) {
+      return null;
+    }
+    return user;
   }
 
   // ── Admin Management ─────────────────────────────────────

@@ -1,10 +1,17 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import * as jwt from 'jsonwebtoken';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
-  constructor(private db: DatabaseService) {}
+  private supabase: SupabaseClient;
+
+  constructor(private db: DatabaseService) {
+    this.supabase = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    );
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -17,16 +24,23 @@ export class JwtGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
-      
-      const res = await this.db.pool.query('SELECT email FROM users WHERE email=$1', [decoded.user]);
-      if (res.rows.length === 0) {
-        throw new UnauthorizedException('User not found');
+      // Verify token with Supabase
+      const { data: { user }, error } = await this.supabase.auth.getUser(token);
+
+      if (error || !user) {
+        throw new UnauthorizedException('Invalid or expired token');
       }
 
-      request.user = decoded;
+      // Look up user in our local auth_users table
+      const res = await this.db.pool.query('SELECT email, role FROM auth_users WHERE email=$1', [user.email]);
+      if (res.rows.length === 0) {
+        throw new UnauthorizedException('User not found in local database');
+      }
+
+      request.user = { user: user.email, role: res.rows[0].role, supabaseId: user.id };
       return true;
     } catch (e) {
+      if (e instanceof UnauthorizedException) throw e;
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

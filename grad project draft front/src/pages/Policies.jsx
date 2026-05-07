@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Shield, ShieldAlert, Info, Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronRight, Users, Clock, Building2, Mail } from 'lucide-react'
 import { COMPLIANCE_CHECKS } from '../data/complianceChecks'
-
-const API = 'http://127.0.0.1:3001/api/policy'
+import { POLICY_API as API } from '../lib/api'
 
 export default function Policies() {
   const currentUser = (() => { try { return JSON.parse(localStorage.getItem('vpn_user')) } catch { return null } })()

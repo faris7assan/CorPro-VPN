@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import ToggleSwitch from '../components/ToggleSwitch'
 import { ChevronDown, Save, CheckCircle, Key, Wifi, AlertTriangle, Crown, UserPlus, UserMinus, Trash2, RefreshCw, ShieldCheck, Loader2 } from 'lucide-react'
-
-const API = 'http://127.0.0.1:3001/api/auth'
-const VPN_API = 'http://127.0.0.1:3001/api/vpn'
+import { AUTH_API as API, VPN_API } from '../lib/api'
+import { supabase } from '../lib/supabase'
 
 const PROTOCOLS = ['WireGuard', 'OpenVPN (UDP)', 'OpenVPN (TCP)', 'IKEv2']
 
@@ -121,14 +120,9 @@ export default function Settings() {
 
     setPassLoading(true);
     try {
-
-      const res = await fetch('http://127.0.0.1:3001/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, oldPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Change failed');
+      // Update password via Supabase Auth (requires active session)
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
 
       setPassSuccess('Password updated successfully!');
       setOldPassword(''); setNewPassword('');
