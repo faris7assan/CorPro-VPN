@@ -64,7 +64,7 @@ export const liveLogs = [
 // APP FEATURES (Landing Page)
 // ============================================================
 export const appFeatures = [
-  { title: "Corpo VPN Tunnel", description: "Ultra-fast encrypted tunnel using the next-gen protocol." },
+  { title: "Corpo VPN Tunnel", description: "Ultra-fast encrypted tunnel using the next-gen Corpo Tunnel protocol." },
   { title: "Device Compliance", description: "Ensures your workstation meets corporate security standards." },
   { title: "Seamless MFA", description: "Integrated authentication with company identity providers." },
   { title: "Admin Controlled", description: "Policies and access levels managed by corporate IT." },
