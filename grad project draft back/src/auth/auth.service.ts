@@ -318,6 +318,15 @@ export class AuthService {
     return result.rows;
   }
 
+  async getAuditLogs(callerEmail: string) {
+    await this.requireAdmin(callerEmail);
+    // Fetch logs from Supabase's internal auth.audit_log_entries
+    const result = await this.db.pool.query(
+      "SELECT id, payload, created_at, ip_address FROM auth.audit_log_entries ORDER BY created_at DESC LIMIT 100",
+    );
+    return result.rows;
+  }
+
   async getUserProfile(email: string) {
     const result = await this.db.pool.query(
       "SELECT id, email, role, created_at FROM auth_users WHERE email=$1",

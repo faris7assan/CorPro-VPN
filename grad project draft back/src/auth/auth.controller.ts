@@ -44,6 +44,11 @@ export class AuthController {
     return this.authService.getAllUsers(callerEmail);
   }
 
+  @Get("audit-logs")
+  async getAuditLogs(@Query("callerEmail") callerEmail: string) {
+    return this.authService.getAuditLogs(callerEmail);
+  }
+
   // ── Password Recovery ────────────────────────────────────
   @Post("update-password")
   async updatePassword(@Body() body: any) {

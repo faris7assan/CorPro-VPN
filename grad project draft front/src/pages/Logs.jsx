@@ -1,36 +1,59 @@
 import { useState, useEffect, useRef } from 'react'
-import { Trash2, Pause, Play } from 'lucide-react'
+import { Trash2, RefreshCw } from 'lucide-react'
 import LogEntry from '../components/LogEntry'
-import { initialLogs, liveLogs } from '../data/mockData'
+import { AUTH_API } from '../lib/api'
 
 const TABS = ['All', 'Info', 'Warning', 'Error', 'Success']
 
-let logId = initialLogs.length + 1
-let liveIdx = 0
-
 export default function Logs() {
-  const [logs, setLogs] = useState(initialLogs)
+  const [logs, setLogs] = useState([])
   const [filter, setFilter] = useState('All')
-  const [paused, setPaused] = useState(false)
+  const [loading, setLoading] = useState(true)
   const bottomRef = useRef(null)
 
-  // Live log simulator
-  useEffect(() => {
-    if (paused) return
-    const interval = setInterval(() => {
-      const now = new Date()
-      const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
-      const template = liveLogs[liveIdx % liveLogs.length]
-      liveIdx++
-      setLogs(prev => [...prev, { ...template, id: logId++, time }])
-    }, 2200)
-    return () => clearInterval(interval)
-  }, [paused])
+  const fetchLogs = async () => {
+    try {
+      setLoading(true)
+      const currentUser = JSON.parse(localStorage.getItem('vpn_user') || '{}')
+      if (!currentUser.email) return
 
-  // Auto-scroll to bottom
+      const res = await fetch(`${AUTH_API}/audit-logs?callerEmail=${encodeURIComponent(currentUser.email)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch logs')
+
+      const mappedLogs = data.map(entry => {
+        const action = entry.payload?.action || 'Event'
+        const actor = entry.payload?.actor_username || 'System'
+        let level = 'info'
+        if (action.includes('error') || action.includes('fail')) level = 'error'
+        else if (action.includes('success') || action === 'login') level = 'success'
+        else if (action.includes('reset') || action.includes('recovery')) level = 'warning'
+
+        return {
+          id: entry.id,
+          level,
+          message: `[${action.toUpperCase()}] ${actor} (IP: ${entry.ip_address || 'Unknown'})`,
+          time: new Date(entry.created_at).toLocaleString(),
+        }
+      })
+      setLogs(mappedLogs)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (!paused) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [logs, paused])
+    fetchLogs()
+  }, [])
+
+  // Auto-scroll to bottom on first load
+  useEffect(() => {
+    if (logs.length > 0 && bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs.length])
 
   const filtered = filter === 'All'
     ? logs
@@ -49,17 +72,17 @@ export default function Logs() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-white">Connection Logs</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries · Live updating</p>
+            <h1 className="text-2xl font-bold text-white">Authentication Audit Logs</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries · Supabase Auth Events</p>
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setPaused(v => !v)}
+              onClick={fetchLogs}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card text-sm
                 text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-200 border border-white/8"
             >
-              {paused ? <Play size={14} /> : <Pause size={14} />}
-              {paused ? 'Resume' : 'Pause'}
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              Refresh
             </button>
             <button
               onClick={() => setLogs([])}
@@ -67,7 +90,7 @@ export default function Logs() {
                 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200 border border-transparent hover:border-red-500/20"
             >
               <Trash2 size={14} />
-              Clear
+              Clear View
             </button>
           </div>
         </div>
@@ -108,12 +131,15 @@ export default function Logs() {
         <div className="flex-1 overflow-y-auto glass-card p-3 font-mono">
           {/* Live indicator */}
           <div className="flex items-center gap-2 px-3 mb-3 pb-3 border-b border-white/5">
-            <div className={`w-2 h-2 rounded-full ${paused ? 'bg-yellow-400' : 'bg-neon-green animate-pulse'}`} />
-            <span className="text-xs text-slate-600">{paused ? 'PAUSED' : 'LIVE'}</span>
+            <span className="text-xs text-slate-600">STATIC VIEW</span>
             <span className="ml-auto text-xs text-slate-700">{filtered.length} entries shown</span>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-40 text-slate-600 text-sm">
+              Loading logs from Supabase...
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-slate-600 text-sm">
               No {filter.toLowerCase()} entries
             </div>
