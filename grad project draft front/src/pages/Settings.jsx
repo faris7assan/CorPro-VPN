@@ -1,131 +1,188 @@
-import { useState, useEffect } from 'react'
-import ToggleSwitch from '../components/ToggleSwitch'
-import { ChevronDown, Save, CheckCircle, Key, Wifi, AlertTriangle, Crown, UserPlus, UserMinus, Trash2, RefreshCw, ShieldCheck, Loader2 } from 'lucide-react'
-import { AUTH_API as API, VPN_API } from '../lib/api'
-import { supabase } from '../lib/supabase'
+import { useState, useEffect } from "react";
+import ToggleSwitch from "../components/ToggleSwitch";
+import {
+  ChevronDown,
+  Save,
+  CheckCircle,
+  Key,
+  Wifi,
+  AlertTriangle,
+  Crown,
+  UserPlus,
+  UserMinus,
+  Trash2,
+  RefreshCw,
+  ShieldCheck,
+  Loader2,
+} from "lucide-react";
+import { AUTH_API as API, VPN_API } from "../lib/api";
+import { supabase } from "../lib/supabase";
 
-const PROTOCOLS = ['Corpo Tunnel', 'OpenVPN (UDP)', 'OpenVPN (TCP)', 'IKEv2']
+const PROTOCOLS = ["Corpo Tunnel", "OpenVPN (UDP)", "OpenVPN (TCP)", "IKEv2"];
 
 function SectionHeader({ title, description }) {
   return (
     <div className="mb-4">
       <h2 className="text-sm font-semibold text-white">{title}</h2>
-      {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+      {description && (
+        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+      )}
     </div>
-  )
+  );
 }
 
 export default function Settings() {
   // Role check
-  const currentUser = (() => { try { return JSON.parse(localStorage.getItem('vpn_user')) } catch { return null } })()
-  const isAdmin = currentUser?.role === 'admin'
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("vpn_user"));
+    } catch {
+      return null;
+    }
+  })();
+  const isAdmin = currentUser?.role === "admin";
 
   // Admin management state
-  const [adminEmail, setAdminEmail] = useState('')
-  const [admins, setAdmins] = useState([])
-  const [adminLoading, setAdminLoading] = useState(false)
-  const [adminError, setAdminError] = useState('')
-  const [adminSuccess, setAdminSuccess] = useState('')
+  const [adminEmail, setAdminEmail] = useState("");
+  const [admins, setAdmins] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
+  const [adminSuccess, setAdminSuccess] = useState("");
 
   const fetchAdmins = async () => {
     try {
-      const res = await fetch(`${API}/admins?callerEmail=${encodeURIComponent(currentUser?.email)}`)
-      const data = await res.json()
-      if (res.ok) setAdmins(data)
+      const res = await fetch(
+        `${API}/admins?callerEmail=${encodeURIComponent(currentUser?.email)}`,
+      );
+      const data = await res.json();
+      if (res.ok) setAdmins(data);
     } catch {}
-  }
+  };
 
-  useEffect(() => { if (isAdmin) fetchAdmins() }, [isAdmin])
+  useEffect(() => {
+    if (isAdmin) fetchAdmins();
+  }, [isAdmin]);
 
   const handleAddAdmin = async () => {
-    setAdminError(''); setAdminSuccess('')
-    if (!adminEmail.trim()) return
-    setAdminLoading(true)
+    setAdminError("");
+    setAdminSuccess("");
+    if (!adminEmail.trim()) return;
+    setAdminLoading(true);
     try {
       const res = await fetch(`${API}/add-admin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callerEmail: currentUser?.email, targetEmail: adminEmail }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed')
-      setAdminSuccess(data.message)
-      setAdminEmail('')
-      fetchAdmins()
-    } catch (err) { setAdminError(err.message) }
-    finally { setAdminLoading(false) }
-  }
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callerEmail: currentUser?.email,
+          targetEmail: adminEmail,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setAdminSuccess(data.message);
+      setAdminEmail("");
+      fetchAdmins();
+    } catch (err) {
+      setAdminError(err.message);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
 
   const handleRemoveAdmin = async (email) => {
-    setAdminError(''); setAdminSuccess('')
+    setAdminError("");
+    setAdminSuccess("");
     try {
       const res = await fetch(`${API}/remove-admin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callerEmail: currentUser?.email, targetEmail: email }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed')
-      setAdminSuccess(data.message)
-      fetchAdmins()
-    } catch (err) { setAdminError(err.message) }
-  }
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callerEmail: currentUser?.email,
+          targetEmail: email,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setAdminSuccess(data.message);
+      fetchAdmins();
+    } catch (err) {
+      setAdminError(err.message);
+    }
+  };
 
   const [settings, setSettings] = useState({
-    autoConnect:     true,
-    killSwitch:      true,
-    splitTunneling:  false,
-    dnsLeak:         true,
-    notifications:   true,
-    startOnBoot:     false,
-    darkMode:        true,
-    analytics:       false,
-  })
+    autoConnect: true,
+    killSwitch: true,
+    splitTunneling: false,
+    dnsLeak: true,
+    notifications: true,
+    startOnBoot: false,
+    darkMode: true,
+    analytics: false,
+  });
 
-  const [protocol, setProtocol] = useState('Corpo Tunnel')
-  const [protocolOpen, setProtocolOpen] = useState(false)
-  const [startup, setStartup] = useState('minimize')
+  const [protocol, setProtocol] = useState("Corpo Tunnel");
+  const [protocolOpen, setProtocolOpen] = useState(false);
+  const [startup, setStartup] = useState("minimize");
 
-  // WireGuard config state (now read-only, fetched from backend)
-  const [vpnConfig, setVpnConfig] = useState(null)
-  const [configLoading, setConfigLoading] = useState(true)
-  const [configError, setConfigError] = useState(null)
-  const [reprovisionLoading, setReprovisionLoading] = useState(false)
-  const [reprovisionSuccess, setReprovisionSuccess] = useState(false)
+  // Corpo Tunnel config state (now read-only, fetched from backend)
+  const [vpnConfig, setVpnConfig] = useState(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState(null);
+  const [reprovisionLoading, setReprovisionLoading] = useState(false);
+  const [reprovisionSuccess, setReprovisionSuccess] = useState(false);
 
   // Password change state
-  const [oldPassword, setOldPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [passLoading, setPassLoading] = useState(false)
-  const [passError, setPassError] = useState('')
-  const [passSuccess, setPassSuccess] = useState('')
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passLoading, setPassLoading] = useState(false);
+  const [passError, setPassError] = useState("");
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
 
   const validatePassword = (pass, userEmail) => {
-    const exemptEmails = ['ys5313944@gmail.com', 'yahiasaad1904@gmail.com'];
+    const exemptEmails = ["ys5313944@gmail.com", "yahiasaad1904@gmail.com"];
     if (exemptEmails.includes(userEmail)) return true;
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.{8,})/.test(pass);
   };
 
   const handleChangePassword = async () => {
-    setPassError(''); setPassSuccess('');
-    
-    const userStr = localStorage.getItem('vpn_user');
+    setPassError("");
+
+    const userStr = localStorage.getItem("vpn_user");
     const user = userStr ? JSON.parse(userStr) : null;
-    if (!user?.email) throw new Error('User not found. Please log in again.');
+    if (!user?.email) {
+      setPassError("User not found. Please log in again.");
+      return;
+    }
 
     if (!validatePassword(newPassword, user.email)) {
-      setPassError('New password must be 8+ chars, have upper/lower/special characters');
+      setPassError(
+        "New password must be 8+ chars, have upper/lower/special characters",
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassError("Passwords do not match");
       return;
     }
 
     setPassLoading(true);
     try {
       // Update password via Supabase Auth (requires active session)
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
       if (error) throw new Error(error.message);
 
-      setPassSuccess('Password updated successfully!');
-      setOldPassword(''); setNewPassword('');
+      // Success — show thank-you state
+      setPasswordUpdated(true);
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordUpdated(false), 5000);
     } catch (err) {
       setPassError(err.message);
     } finally {
@@ -133,88 +190,146 @@ export default function Settings() {
     }
   };
 
+  const handleSendResetEmail = async () => {
+    setResetError("");
+
+    const userStr = localStorage.getItem("vpn_user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!user?.email) {
+      setResetError("User not found. Please log in again.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/password-reset`,
+      });
+      if (error) throw new Error(error.message);
+
+      setResetEmailSent(true);
+      setTimeout(() => setResetEmailSent(false), 6000);
+    } catch (err) {
+      setResetError(err.message || "Failed to send reset email");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   // Fetch VPN config from backend on mount
   useEffect(() => {
     if (currentUser?.email) {
-      setConfigLoading(true)
+      setConfigLoading(true);
       fetch(`${VPN_API}/config?email=${encodeURIComponent(currentUser.email)}`)
-        .then(r => r.json())
-        .then(data => {
+        .then((r) => r.json())
+        .then((data) => {
           if (data.provisioned) {
-            setVpnConfig(data)
+            setVpnConfig(data);
           }
-          setConfigLoading(false)
+          setConfigLoading(false);
         })
-        .catch(err => {
-          setConfigError('Failed to load VPN configuration')
-          setConfigLoading(false)
-        })
+        .catch((err) => {
+          setConfigError("Failed to load VPN configuration");
+          setConfigLoading(false);
+        });
     }
-  }, [currentUser?.email])
+  }, [currentUser?.email]);
 
   // Re-provision VPN config (admin-only or self)
   const handleReprovision = async () => {
-    setReprovisionLoading(true)
-    setReprovisionSuccess(false)
-    setConfigError(null)
+    setReprovisionLoading(true);
+    setReprovisionSuccess(false);
+    setConfigError(null);
     try {
       const res = await fetch(`${VPN_API}/reprovision`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: currentUser.email }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Re-provision failed')
-      
-      // Refresh config
-      const configRes = await fetch(`${VPN_API}/config?email=${encodeURIComponent(currentUser.email)}`)
-      const configData = await configRes.json()
-      if (configData.provisioned) {
-        setVpnConfig(configData)
-      }
-      
-      setReprovisionSuccess(true)
-      setTimeout(() => setReprovisionSuccess(false), 4000)
-    } catch (err) {
-      setConfigError(err.message)
-    } finally {
-      setReprovisionLoading(false)
-    }
-  }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Re-provision failed");
 
-  const toggle = key => setSettings(s => ({ ...s, [key]: !s[key] }))
+      // Refresh config
+      const configRes = await fetch(
+        `${VPN_API}/config?email=${encodeURIComponent(currentUser.email)}`,
+      );
+      const configData = await configRes.json();
+      if (configData.provisioned) {
+        setVpnConfig(configData);
+      }
+
+      setReprovisionSuccess(true);
+      setTimeout(() => setReprovisionSuccess(false), 4000);
+    } catch (err) {
+      setConfigError(err.message);
+    } finally {
+      setReprovisionLoading(false);
+    }
+  };
+
+  const toggle = (key) => setSettings((s) => ({ ...s, [key]: !s[key] }));
 
   // Mask private key for display
   const maskKey = (key) => {
-    if (!key) return '—'
-    if (key.length <= 8) return '••••••••'
-    return key.substring(0, 4) + '••••••••••••••••••••' + key.substring(key.length - 4)
-  }
+    if (!key) return "—";
+    if (key.length <= 8) return "••••••••";
+    return (
+      key.substring(0, 4) +
+      "••••••••••••••••••••" +
+      key.substring(key.length - 4)
+    );
+  };
 
   return (
     <div className="h-full overflow-y-auto px-8 py-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Application Settings</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Configure your Corpo VPN experience</p>
+          <h1 className="text-2xl font-bold text-white">
+            Application Settings
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Configure your Corpo VPN experience
+          </p>
         </div>
 
         <div className="space-y-8">
-
-          {/* WIREGUARD CONFIG — READ-ONLY (AUTO-PROVISIONED) */}
+          {/* CORPO TUNNEL CONFIG — READ-ONLY (AUTO-PROVISIONED) */}
           <div className="glass-card p-6 border-cyan-500/20">
-            <SectionHeader title="🔑 Corpo Tunnel Configuration" description="Your VPN peer is automatically provisioned when you register" />
-            
+            <SectionHeader
+              title="🔑 Corpo Tunnel Configuration"
+              description="Your VPN peer is automatically provisioned when you register"
+            />
+
             <div className="space-y-4">
               {/* Server info (read-only) */}
               <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Server Details</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">
+                  Server Details
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div><span className="text-slate-500">Endpoint:</span> <span className="text-cyan-400 font-mono">80.65.211.27:51820</span></div>
-                  <div><span className="text-slate-500">Protocol:</span> <span className="text-cyan-400 font-mono">Corpo Tunnel</span></div>
-                  <div><span className="text-slate-500">DNS:</span> <span className="text-cyan-400 font-mono">1.1.1.1</span></div>
-                  <div><span className="text-slate-500">Routing:</span> <span className="text-cyan-400 font-mono">0.0.0.0/0 (all traffic)</span></div>
+                  <div>
+                    <span className="text-slate-500">Endpoint:</span>{" "}
+                    <span className="text-cyan-400 font-mono">
+                      80.65.211.27:51820
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Protocol:</span>{" "}
+                    <span className="text-cyan-400 font-mono">
+                      Corpo Tunnel
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">DNS:</span>{" "}
+                    <span className="text-cyan-400 font-mono">1.1.1.1</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Routing:</span>{" "}
+                    <span className="text-cyan-400 font-mono">
+                      0.0.0.0/0 (all traffic)
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -222,15 +337,21 @@ export default function Settings() {
               {configLoading ? (
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
                   <Loader2 size={16} className="text-cyan-400 animate-spin" />
-                  <span className="text-sm text-slate-400">Loading VPN configuration...</span>
+                  <span className="text-sm text-slate-400">
+                    Loading VPN configuration...
+                  </span>
                 </div>
               ) : vpnConfig ? (
                 <>
                   {/* Provisioned status badge */}
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <ShieldCheck size={14} className="text-emerald-400" />
-                    <span className="text-xs text-emerald-300 font-semibold">VPN Peer Provisioned</span>
-                    <span className="text-[10px] text-emerald-400/60 ml-auto font-mono">Auto-assigned on registration</span>
+                    <span className="text-xs text-emerald-300 font-semibold">
+                      VPN Peer Provisioned
+                    </span>
+                    <span className="text-[10px] text-emerald-400/60 ml-auto font-mono">
+                      Auto-assigned on registration
+                    </span>
                   </div>
 
                   {/* Client IP (readable) */}
@@ -242,7 +363,10 @@ export default function Settings() {
                     <div className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-mono select-all">
                       {vpnConfig.clientIp}
                     </div>
-                    <p className="text-[10px] text-slate-600 mt-1">Automatically assigned by the VPN server. This is your unique tunnel address.</p>
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      Automatically assigned by the VPN server. This is your
+                      unique tunnel address.
+                    </p>
                   </div>
 
                   {/* Private Key (masked) */}
@@ -254,7 +378,10 @@ export default function Settings() {
                     <div className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-500 text-sm font-mono">
                       {maskKey(vpnConfig.privateKey)}
                     </div>
-                    <p className="text-[10px] text-slate-600 mt-1">Securely stored. This key was generated by the VPN server during registration.</p>
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      Securely stored. This key was generated by the VPN server
+                      during registration.
+                    </p>
                   </div>
 
                   {/* Re-provision button (admin-only) */}
@@ -263,17 +390,25 @@ export default function Settings() {
                       onClick={handleReprovision}
                       disabled={reprovisionLoading}
                       className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300
-                        ${reprovisionSuccess
-                          ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
-                          : 'bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20'
+                        ${
+                          reprovisionSuccess
+                            ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
+                            : "bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20"
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {reprovisionLoading ? (
-                        <><Loader2 size={16} className="animate-spin" /> Re-provisioning...</>
+                        <>
+                          <Loader2 size={16} className="animate-spin" />{" "}
+                          Re-provisioning...
+                        </>
                       ) : reprovisionSuccess ? (
-                        <><CheckCircle size={16} /> New Peer Provisioned!</>
+                        <>
+                          <CheckCircle size={16} /> New Peer Provisioned!
+                        </>
                       ) : (
-                        <><RefreshCw size={16} /> Re-provision VPN Peer (Admin)</>
+                        <>
+                          <RefreshCw size={16} /> Re-provision VPN Peer (Admin)
+                        </>
                       )}
                     </button>
                   )}
@@ -283,8 +418,13 @@ export default function Settings() {
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
                   <AlertTriangle size={16} className="text-amber-400" />
                   <div>
-                    <p className="text-sm text-amber-300 font-semibold">VPN Peer Not Provisioned</p>
-                    <p className="text-xs text-amber-400/60 mt-0.5">Your VPN config will be automatically provisioned on your next login. If the issue persists, contact your admin.</p>
+                    <p className="text-sm text-amber-300 font-semibold">
+                      VPN Peer Not Provisioned
+                    </p>
+                    <p className="text-xs text-amber-400/60 mt-0.5">
+                      Your VPN config will be automatically provisioned on your
+                      next login. If the issue persists, contact your admin.
+                    </p>
                   </div>
                 </div>
               )}
@@ -299,127 +439,234 @@ export default function Settings() {
             </div>
           </div>
 
-
-
-          {/* SECURITY: CHANGE PASSWORD */}
           <div className="glass-card p-6 border-purple-500/20">
-            <SectionHeader title="🛡️ Account Security" description="Update your account password" />
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-slate-400 font-medium mb-1.5 block">Current Password</label>
-                <input
-                  type="password"
-                  value={oldPassword}
-                  onChange={e => setOldPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500/40"
-                />
+            <SectionHeader
+              title="🛡️ Account Security"
+              description="Manage your password securely"
+            />
+
+            {passwordUpdated ? (
+              /* ── Success State ── */
+              <div className="space-y-4 animate-fade-in">
+                <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                    <CheckCircle size={32} className="text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-emerald-300 mb-1">
+                    Password Updated Successfully
+                  </h3>
+                  <p className="text-sm text-emerald-400/70">
+                    Your password has been changed. Use your new password next
+                    time you sign in.
+                  </p>
+                </div>
               </div>
-
-              <div>
-                <label className="text-xs text-slate-400 font-medium mb-1.5 block">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="8+ chars, upper, lower, special"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500/40"
-                />
+            ) : resetEmailSent ? (
+              /* ── Reset Email Sent State ── */
+              <div className="space-y-4 animate-fade-in">
+                <div className="p-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/15 flex items-center justify-center">
+                    <CheckCircle size={32} className="text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-blue-300 mb-1">
+                    Check Your Email
+                  </h3>
+                  <p className="text-sm text-blue-400/70">
+                    A password reset link has been sent to your email. Click the link to set a new password.
+                  </p>
+                </div>
               </div>
+            ) : (
+              /* ── Password Form ── */
+              <div className="space-y-6">
+                {/* Reset Email Option */}
+                <div className="space-y-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+                  <label className="text-xs text-slate-400 font-medium block">
+                    Reset Password via Email
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Send a password reset link to your email address
+                  </p>
+                  <button
+                    onClick={handleSendResetEmail}
+                    disabled={resetLoading}
+                    className="w-full py-3 rounded-xl font-semibold text-sm bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {resetLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Sending...
+                      </>
+                    ) : (
+                      <>📧 Send Reset Email</>
+                    )}
+                  </button>
+                  {resetError && <p className="text-xs text-red-400">❌ {resetError}</p>}
+                </div>
 
-              {passError && <p className="text-xs text-red-400">{passError}</p>}
-              {passSuccess && <p className="text-xs text-emerald-400">{passSuccess}</p>}
+                {/* OR Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-white/10"></div>
+                  <span className="text-xs text-slate-500 font-medium">OR</span>
+                  <div className="flex-1 h-px bg-white/10"></div>
+                </div>
 
-              <button
-                onClick={handleChangePassword}
-                disabled={passLoading || !newPassword || !oldPassword}
-                className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {passLoading ? 'Updating...' : 'Update Password'}
-              </button>
-            </div>
+                {/* Inline Password Update */}
+                <div className="space-y-4">
+                  <label className="text-xs text-slate-400 font-medium block">
+                    Update Password Directly
+                  </label>
+                  <div>
+                    <label className="text-xs text-slate-400 font-medium mb-1.5 block">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="8+ chars, upper, lower, special"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500/40"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 font-medium mb-1.5 block">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-purple-500/40"
+                    />
+                  </div>
+
+                  {passError && (
+                    <p className="text-xs text-red-400">❌ {passError}</p>
+                  )}
+
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={passLoading || !newPassword || !confirmPassword}
+                    className="w-full py-3 rounded-xl font-semibold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {passLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Updating...
+                      </>
+                    ) : (
+                      <>Update Password</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* PRIVACY */}
           <div className="glass-card p-6">
-            <SectionHeader title="Privacy & Analytics" description="Control what data Corpo VPN collects" />
+            <SectionHeader
+              title="Privacy & Analytics"
+              description="Control what data Corpo VPN collects"
+            />
             <div className="space-y-2">
               <ToggleSwitch
                 label="Anonymous Usage Reports"
                 description="Help improve Corpo VPN with diagnostic logs (no personal data)"
                 icon="📊"
                 enabled={settings.analytics}
-                onToggle={() => toggle('analytics')}
+                onToggle={() => toggle("analytics")}
               />
             </div>
             <div className="mt-4 p-3 rounded-xl bg-green-500/8 border border-green-500/15">
               <p className="text-xs text-green-300">
-                ✓ Corpo VPN enforces a strict zero-log policy. Your browsing activity is never recorded.
+                ✓ Corpo VPN enforces a strict zero-log policy. Your browsing
+                activity is never recorded.
               </p>
             </div>
           </div>
 
           {/* ADMIN MANAGEMENT — Admin Only */}
           {isAdmin && (
-          <div className="glass-card p-6 border-amber-500/20">
-            <SectionHeader title="👑 Admin Management" description="Promote or demote admins (admin only)" />
-            
-            {/* Add admin */}
-            <div className="flex gap-3 mb-4">
-              <input
-                type="email"
-                value={adminEmail}
-                onChange={e => setAdminEmail(e.target.value)}
-                placeholder="Enter email to promote to admin..."
-                className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-500/40"
+            <div className="glass-card p-6 border-amber-500/20">
+              <SectionHeader
+                title="👑 Admin Management"
+                description="Promote or demote admins (admin only)"
               />
-              <button
-                onClick={handleAddAdmin}
-                disabled={!adminEmail.trim() || adminLoading}
-                className="px-5 py-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-semibold hover:bg-amber-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <UserPlus size={14} />
-                {adminLoading ? 'Adding...' : 'Add Admin'}
-              </button>
-            </div>
 
-            {adminError && <p className="text-xs text-red-400 mb-3">❌ {adminError}</p>}
-            {adminSuccess && <p className="text-xs text-emerald-400 mb-3">✅ {adminSuccess}</p>}
+              {/* Add admin */}
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="Enter email to promote to admin..."
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-500/40"
+                />
+                <button
+                  onClick={handleAddAdmin}
+                  disabled={!adminEmail.trim() || adminLoading}
+                  className="px-5 py-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-sm font-semibold hover:bg-amber-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <UserPlus size={14} />
+                  {adminLoading ? "Adding..." : "Add Admin"}
+                </button>
+              </div>
 
-            {/* Admin list */}
-            <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">Current Admins</p>
-              {admins.map(a => (
-                <div key={a.email} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                  <div className="flex items-center gap-2">
-                    <Crown size={14} className="text-amber-400" />
-                    <span className="text-sm text-white font-mono">{a.email}</span>
-                    {a.email === 'ys5313944@gmail.com' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">ROOT</span>
-                    )}
+              {adminError && (
+                <p className="text-xs text-red-400 mb-3">❌ {adminError}</p>
+              )}
+              {adminSuccess && (
+                <p className="text-xs text-emerald-400 mb-3">
+                  ✅ {adminSuccess}
+                </p>
+              )}
+
+              {/* Admin list */}
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+                  Current Admins
+                </p>
+                {admins.map((a) => (
+                  <div
+                    key={a.email}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Crown size={14} className="text-amber-400" />
+                      <span className="text-sm text-white font-mono">
+                        {a.email}
+                      </span>
+                      {a.email === "ys5313944@gmail.com" && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">
+                          ROOT
+                        </span>
+                      )}
+                    </div>
+                    {a.email !== "ys5313944@gmail.com" &&
+                      a.email !== currentUser?.email && (
+                        <button
+                          onClick={() => handleRemoveAdmin(a.email)}
+                          className="text-[11px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all flex items-center gap-1"
+                        >
+                          <UserMinus size={12} /> Demote
+                        </button>
+                      )}
                   </div>
-                  {a.email !== 'ys5313944@gmail.com' && a.email !== currentUser?.email && (
-                    <button
-                      onClick={() => handleRemoveAdmin(a.email)}
-                      className="text-[11px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all flex items-center gap-1"
-                    >
-                      <UserMinus size={12} /> Demote
-                    </button>
-                  )}
-                </div>
-              ))}
-              {admins.length === 0 && <p className="text-xs text-slate-600">Loading admins...</p>}
+                ))}
+                {admins.length === 0 && (
+                  <p className="text-xs text-slate-600">Loading admins...</p>
+                )}
+              </div>
             </div>
-          </div>
           )}
 
           {/* Version info */}
           <div className="text-center text-xs text-slate-700 pb-4">
-             Corpo VPN v4.2.0-stable · Build 2026.03.11 · Enterprise License
+            Corpo VPN v4.2.0-stable · Build 2026.03.11 · Enterprise License
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

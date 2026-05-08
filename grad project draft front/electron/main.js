@@ -197,10 +197,10 @@ async function checkBrowserOutdated() {
 
 // 18. VPN client outdated
 function checkVPNClientOutdated() {
-  // Check if WireGuard is installed; version check is a placeholder
+  // Check if tunnel engine is installed; version check is a placeholder
   const wgExe = ['C:\\Program Files\\WireGuard\\wireguard.exe', 'C:\\Program Files (x86)\\WireGuard\\wireguard.exe']
   const found = wgExe.find(p => fs.existsSync(p))
-  return { pass: !!found, detail: found ? 'WireGuard installed' : 'WireGuard not found' }
+  return { pass: !!found, detail: found ? 'Secure Tunnel engine installed' : 'Secure Tunnel engine not found' }
 }
 
 // 19. Hostname mismatch
@@ -370,7 +370,7 @@ ipcMain.handle('compliance:run', async () => {
 })
 
 // ─────────────────────────────────────────────────────────────
-// WIREGUARD VPN — SAFE Connection Management
+// CORPO TUNNEL — SAFE Connection Management
 // ─────────────────────────────────────────────────────────────
 
 const TUNNEL_NAME = 'CorpoVPN'
@@ -398,12 +398,12 @@ function runCmd(cmd, timeout = 10000) {
 // ─── Helper: find executables ─────────────────────────────────
 
 function findExe(name) {
-  // 1. Check bundled executables (so user doesn't need to install WireGuard app)
+  // 1. Check bundled executables (so user doesn't need to install tunnel engine separately)
   const localDir = app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, 'bin')
   const localExe = path.join(localDir, name)
   if (fs.existsSync(localExe)) return localExe
 
-  // 2. Fallback to system-installed WireGuard
+  // 2. Fallback to system-installed tunnel engine
   const dirs = ['C:\\Program Files\\WireGuard', 'C:\\Program Files (x86)\\WireGuard']
   for (const dir of dirs) {
     const full = path.join(dir, name)
@@ -450,7 +450,7 @@ function pingServer(ip) {
   })
 }
 
-// ─── Helper: check if WireGuard handshake completed ──────────
+// ─── Helper: check if tunnel handshake completed ──────────
 
 function checkHandshake() {
   return new Promise((resolve) => {
@@ -568,12 +568,12 @@ ipcMain.handle('vpn:connect', async (_event, clientConfig) => {
   // ── Step 0: Validate inputs ──
   const wgExe = findExe('wireguard.exe')
   if (!wgExe) {
-    return { success: false, error: 'WireGuard is not installed. Download it from wireguard.com/install' }
+    return { success: false, error: 'Secure Tunnel engine is not installed. Please contact your administrator.' }
   }
 
   const { privateKey, clientIp } = clientConfig
   if (!privateKey || !clientIp) {
-    return { success: false, error: 'Missing private key or client IP. Go to Settings → WireGuard Config.' }
+    return { success: false, error: 'Missing private key or client IP. Go to Settings → Tunnel Configuration.' }
   }
 
   // ── Step 1: Ping the server FIRST ──
@@ -634,11 +634,11 @@ ipcMain.handle('vpn:connect', async (_event, clientConfig) => {
     try { fs.unlinkSync(CONF_PATH) } catch {}
     return {
       success: false,
-      error: `Failed to start WireGuard tunnel service. Error: ${lastInstallError}`,
+      error: `Failed to start Corpo Tunnel service. Error: ${lastInstallError}`,
     }
   }
 
-  // ── Step 5: Wait and verify actual WireGuard handshake ──
+  // ── Step 5: Wait and verify actual tunnel handshake ──
   const handshake = await waitForHandshake(5, 2000) // 5 retries, 2s apart = 10s max
 
   if (!handshake.success) {
@@ -659,7 +659,7 @@ ipcMain.handle('vpn:connect', async (_event, clientConfig) => {
 
     return {
       success: false,
-      error: `Handshake did not complete within 10 seconds. Tunnel rolled back safely.\n\nDebug: ${debugOutput || 'No WireGuard interface found — the tunnel service may have failed to start.'}\n\nCheck: (1) Private key matches the public key added on server. (2) Server WireGuard is running. (3) UDP port 51820 is open.`,
+      error: `Handshake did not complete within 10 seconds. Tunnel rolled back safely.\n\nDebug: ${debugOutput || 'No tunnel interface found — the tunnel service may have failed to start.'}\n\nCheck: (1) Private key matches the public key added on server. (2) Server tunnel is running. (3) UDP port 51820 is open.`,
     }
   }
 

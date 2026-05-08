@@ -10,6 +10,9 @@ export default function AppShell() {
   const [complianceStatus, setComplianceStatus] = useState(() => {
     return localStorage.getItem('vpn_compliance_status') || 'pending'
   })
+  const [connectionStatus, setConnectionStatus] = useState(() => {
+    return localStorage.getItem('vpn_connection_status') || 'disconnected'
+  })
 
   // Read user info + role from localStorage
   let currentUser = null
@@ -39,6 +42,7 @@ export default function AppShell() {
   useEffect(() => {
     const handler = () => {
       setComplianceStatus(localStorage.getItem('vpn_compliance_status') || 'pending')
+      setConnectionStatus(localStorage.getItem('vpn_connection_status') || 'disconnected')
     }
     window.addEventListener('compliance-update', handler)
     window.addEventListener('storage', handler)
@@ -82,6 +86,9 @@ export default function AppShell() {
     localStorage.removeItem('vpn_token')
     localStorage.removeItem('vpn_user')
     localStorage.removeItem('vpn_compliance_status')
+    localStorage.removeItem('vpn_connection_status')
+    localStorage.removeItem('vpn_connected_at')
+    localStorage.removeItem('vpn_active_session_id')
     navigate('/', { replace: true })
   }
 
@@ -287,7 +294,11 @@ export default function AppShell() {
             <Outlet />
           </div>
         </main>
-      </div>
-    </div>
-  )
-}
+
+        {/* Persistent Connection Status */}
+        {connectionStatus === 'connected' && (
+          <div className="fixed bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            Corpo Tunnel Active
+          </div>
+        )}

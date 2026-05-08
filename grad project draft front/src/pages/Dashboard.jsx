@@ -12,8 +12,19 @@ export default function Dashboard() {
   const currentUser = (() => { try { return JSON.parse(localStorage.getItem('vpn_user')) } catch { return null } })()
   const isAdmin = currentUser?.role === 'admin'
 
-  const [status, setStatus] = useState('disconnected') // disconnected | connecting | connected | error
-  const [timer, setTimer] = useState(0)
+  const [status, setStatus] = useState(() => {
+    // Restore persisted VPN connection state across navigation
+    return localStorage.getItem('vpn_connection_status') || 'disconnected'
+  }) // disconnected | connecting | connected | error
+  const [timer, setTimer] = useState(() => {
+    // Restore session timer from persisted connectedAt timestamp
+    const connectedAt = localStorage.getItem('vpn_connected_at')
+    if (connectedAt) {
+      const elapsed = Math.floor((Date.now() - parseInt(connectedAt, 10)) / 1000)
+      return elapsed > 0 ? elapsed : 0
+    }
+    return 0
+  })
   const [error, setError] = useState(null)
   const [liveStats, setLiveStats] = useState({ rx: '0 B', tx: '0 B', handshake: '--', endpoint: '--' })
   const [clientIp, setClientIp] = useState('---.---.---')
@@ -28,7 +39,9 @@ export default function Dashboard() {
   const [policyLoaded, setPolicyLoaded] = useState(false)
   
   const statusInterval = useRef(null)
-  const [activeSessionId, setActiveSessionId] = useState(null)
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    return localStorage.getItem('vpn_active_session_id') || null
+  })
 
   const isElectron = !!window.electronAPI?.vpnConnect
 
@@ -75,7 +88,26 @@ export default function Dashboard() {
     }
   }, [isAdmin, currentUser?.email])
 
-  // Poll WireGuard status when connected
+  // Persist connection status to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('vpn_connection_status', status)
+    if (status === 'connected' && !localStorage.getItem('vpn_connected_at')) {
+      localStorage.setItem('vpn_connected_at', Date.now().toString())
+    }
+    if (status === 'disconnected' || status === 'error') {
+      localStorage.removeItem('vpn_connected_at')
+      localStorage.removeItem('vpn_active_session_id')
+    }
+  }, [status])
+
+  // Persist activeSessionId
+  useEffect(() => {
+    if (activeSessionId) {
+      localStorage.setItem('vpn_active_session_id', activeSessionId)
+    }
+  }, [activeSessionId])
+
+  // Poll tunnel status when connected
   useEffect(() => {
     if (status === 'connected' && isElectron) {
       statusInterval.current = setInterval(async () => {
@@ -227,7 +259,7 @@ export default function Dashboard() {
     }
   }
 
-  // ─── Real WireGuard Connect / Disconnect ────────────────────
+  // ─── Real Corpo Tunnel Connect / Disconnect ────────────────────
 
   const handleToggle = useCallback(async () => {
     setError(null)
@@ -241,6 +273,8 @@ export default function Dashboard() {
       // Notify backend to end session
       await endVpnSession()
       setActiveSessionId(null)
+      localStorage.removeItem('vpn_connected_at')
+      localStorage.removeItem('vpn_active_session_id')
       setStatus('disconnected')
       setTimer(0)
       setLiveStats({ rx: '0 B', tx: '0 B', handshake: '--', endpoint: '--' })
@@ -527,7 +561,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Live WireGuard Stats (only when connected) */}
+      {/* Live Tunnel Stats (only when connected) */}
       {status === 'connected' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
           <StatsCard label="Data Received" value={liveStats.rx} icon={Wifi} />

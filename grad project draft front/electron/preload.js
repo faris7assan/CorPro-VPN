@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Compliance checks
   runComplianceCheck: () => ipcRenderer.invoke('compliance:run'),
 
-  // WireGuard VPN
+  // Corpo Tunnel VPN
   vpnConnect:    (config) => ipcRenderer.invoke('vpn:connect', config),
   vpnDisconnect: ()       => ipcRenderer.invoke('vpn:disconnect'),
   vpnStatus:     ()       => ipcRenderer.invoke('vpn:status'),
