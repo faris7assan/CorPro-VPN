@@ -6,9 +6,11 @@ import { AUTH_API, POLICY_API } from '../lib/api'
 
 export default function Auth() {
   const navigate = useNavigate()
-  const [step, setStep] = useState('login')       // 'login' | 'register' | 'forgot-password' | 'reset-password'
+  const [step, setStep] = useState('login')       // 'login' | 'register' | 'forgot-password' | 'verify-otp' | 'reset-password'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [otpType, setOtpType] = useState('signup')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -81,29 +83,17 @@ export default function Auth() {
         throw new Error('Your email is not associated with any organization. Contact your admin to be added to a VPN policy.')
       }
 
-      // Step 2: Sign up with Supabase Auth
+      // Step 2: Sign up with Supabase Auth (OTP instead of link)
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: 'https://corpo-vpn.vercel.app/verified.html',
-        }
+        password
       })
       
       if (signUpError) throw new Error(signUpError.message)
 
-      // Step 3: Create local user record in backend (provisions VPN peer)
-      const regRes = await fetch(`${AUTH_API}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const regData = await regRes.json()
-      if (!regRes.ok) throw new Error(regData.message || 'Registration failed')
-
-      setSuccess('Account created! Please log in.')
-      setStep('login')
-      setPassword('')
+      setOtpType('signup')
+      setStep('verify-otp')
+      setSuccess('Verification code sent to your email. Please enter it below.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -148,17 +138,18 @@ export default function Auth() {
     }
   }
 
-  // ── Forgot Password (Send Reset Email via Supabase) ───
+  // ── Forgot Password (Send OTP via Supabase) ───────────
   const handleForgotPassword = async (e) => {
     e.preventDefault()
     clearMessages()
     setLoading(true)
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://corpo-vpn.vercel.app/reset-password.html',
-      })
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email)
       if (resetError) throw new Error(resetError.message)
-      setSuccess('Password reset email sent! Check your inbox.')
+      
+      setOtpType('recovery')
+      setStep('verify-otp')
+      setSuccess('Password reset code sent! Check your inbox.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -166,7 +157,46 @@ export default function Auth() {
     }
   }
 
-  // ── Reset Password (after clicking email link) ────────
+  // ── Verify OTP ─────────────────────────────────────────
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault()
+    clearMessages()
+    if (!otp) return setError('Please enter the verification code')
+    setLoading(true)
+    try {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: otpType,
+      })
+      if (verifyError) throw new Error(verifyError.message)
+      
+      if (otpType === 'signup') {
+        // Create local user record in backend (provisions VPN peer)
+        const regRes = await fetch(`${AUTH_API}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
+        const regData = await regRes.json()
+        if (!regRes.ok) throw new Error(regData.message || 'Registration failed')
+
+        setSuccess('Email verified! You can now log in.')
+        setStep('login')
+        setOtp('')
+      } else if (otpType === 'recovery') {
+        setSuccess('Code verified! Please set your new password.')
+        setStep('reset-password')
+        setOtp('')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Reset Password ──────────────────────────────────────
   const handleResetPassword = async (e) => {
     e.preventDefault()
     clearMessages()
@@ -180,7 +210,9 @@ export default function Auth() {
         password,
       })
       if (updateError) throw new Error(updateError.message)
-      setSuccess('Password updated! Please log in.')
+      
+      await supabase.auth.signOut() // Sign out to force re-login with new password
+      setSuccess('Password updated! Please log in with your new password.')
       setStep('login')
       setPassword('')
     } catch (err) {
@@ -408,7 +440,32 @@ export default function Auth() {
           </form>
         )}
 
-        {/* ── RESET PASSWORD FORM (after clicking email link) ── */}
+        {/* ── VERIFY OTP FORM ── */}
+        {step === 'verify-otp' && (
+          <form onSubmit={handleVerifyOtp} style={styles.form}>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Verification Code</label>
+              <input
+                type="text"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+                placeholder="Enter 6-digit code"
+                required
+                style={styles.input}
+              />
+            </div>
+            <button type="submit" disabled={loading || !otp} style={{...styles.btn, opacity: (loading || !otp) ? 0.5 : 1, cursor: (loading || !otp) ? 'not-allowed' : 'pointer'}}>
+              {loading ? 'Verifying...' : 'Verify Code'}
+            </button>
+            <p style={styles.switchText}>
+              <span style={styles.switchLink} onClick={() => { setStep('login'); clearMessages() }}>
+                ← Back to login
+              </span>
+            </p>
+          </form>
+        )}
+
+        {/* ── RESET PASSWORD FORM (after verifying recovery OTP) ── */}
         {step === 'reset-password' && (
           <form onSubmit={handleResetPassword} style={styles.form}>
             <div style={styles.inputGroup}>

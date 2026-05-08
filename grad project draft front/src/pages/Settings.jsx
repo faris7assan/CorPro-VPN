@@ -479,37 +479,6 @@ export default function Settings() {
             ) : (
               /* ── Password Form ── */
               <div className="space-y-6">
-                {/* Reset Email Option */}
-                <div className="space-y-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
-                  <label className="text-xs text-slate-400 font-medium block">
-                    Reset Password via Email
-                  </label>
-                  <p className="text-xs text-slate-500">
-                    Send a password reset link to your email address
-                  </p>
-                  <button
-                    onClick={handleSendResetEmail}
-                    disabled={resetLoading}
-                    className="w-full py-3 rounded-xl font-semibold text-sm bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {resetLoading ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" /> Sending...
-                      </>
-                    ) : (
-                      <>📧 Send Reset Email</>
-                    )}
-                  </button>
-                  {resetError && <p className="text-xs text-red-400">❌ {resetError}</p>}
-                </div>
-
-                {/* OR Divider */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-white/10"></div>
-                  <span className="text-xs text-slate-500 font-medium">OR</span>
-                  <div className="flex-1 h-px bg-white/10"></div>
-                </div>
-
                 {/* Inline Password Update */}
                 <div className="space-y-4">
                   <label className="text-xs text-slate-400 font-medium block">
