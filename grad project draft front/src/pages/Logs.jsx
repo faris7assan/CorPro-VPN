@@ -22,18 +22,11 @@ export default function Logs() {
       if (!res.ok) throw new Error(data.message || 'Failed to fetch logs')
 
       const mappedLogs = data.map(entry => {
-        const action = entry.payload?.action || 'Event'
-        const actor = entry.payload?.actor_username || 'System'
-        let level = 'info'
-        if (action.includes('error') || action.includes('fail')) level = 'error'
-        else if (action.includes('success') || action === 'login') level = 'success'
-        else if (action.includes('reset') || action.includes('recovery')) level = 'warning'
-
         return {
           id: entry.id,
-          level,
-          message: `[${action.toUpperCase()}] ${actor} (IP: ${entry.ip_address || 'Unknown'})`,
-          time: new Date(entry.created_at).toLocaleString(),
+          level: entry.level,
+          message: entry.message,
+          time: new Date(entry.time).toLocaleString(),
         }
       })
       setLogs(mappedLogs)
@@ -72,8 +65,8 @@ export default function Logs() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-white">Authentication Audit Logs</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries · Supabase Auth Events</p>
+            <h1 className="text-2xl font-bold text-white">System Audit Logs</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{logs.length} entries · Backend System Logs</p>
           </div>
           <div className="flex gap-2">
             <button

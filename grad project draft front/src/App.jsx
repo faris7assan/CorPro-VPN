@@ -4,7 +4,6 @@ import LandingPage from "./pages/LandingPage";
 import PasswordRecovery from "./pages/PasswordRecovery";
 import AppShell from "./components/AppShell";
 import Dashboard from "./pages/Dashboard";
-import Network from "./pages/Network";
 import Settings from "./pages/Settings";
 import Logs from "./pages/Logs";
 import AdminPanel from "./pages/AdminPanel";
@@ -69,14 +68,6 @@ function App() {
         <Route path="settings" element={<Settings />} />
 
         {/* Admin-only routes */}
-        <Route
-          path="network"
-          element={
-            <AdminRoute>
-              <Network />
-            </AdminRoute>
-          }
-        />
         <Route
           path="logs"
           element={

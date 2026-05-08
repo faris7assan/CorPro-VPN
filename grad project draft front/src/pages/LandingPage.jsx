@@ -328,7 +328,7 @@ export default function LandingPage() {
               </div>
               <p className="text-slate-400 text-sm mb-6">
                 Corpo VPN setup has been verified. <br />
-                <strong>Production Installer Path:</strong> <code className="text-cyan-400">/dist-electron/NexusVPN Setup 1.0.0.exe</code>
+                <strong>Production Installer Path:</strong> <code className="text-cyan-400">/dist-electron/Corpo VPN Setup 1.0.0.exe</code>
               </p>
               <div className="flex flex-col gap-3">
                 <button

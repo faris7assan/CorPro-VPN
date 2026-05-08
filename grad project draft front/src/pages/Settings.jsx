@@ -632,7 +632,7 @@ export default function Settings() {
 
           {/* Version info */}
           <div className="text-center text-xs text-slate-700 pb-4">
-            Corpo VPN v4.2.0-stable · Build 2026.03.11 · Enterprise License
+            Corpo VPN v1.0.0-stable · Build 2026.03.11 · Enterprise License
           </div>
         </div>
       </div>

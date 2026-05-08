@@ -105,7 +105,6 @@ export default function AppShell() {
     { to: '/app/settings', icon: Settings, label: 'Settings' },
     // Admin-only nav items
     ...(isAdmin ? [
-      { to: '/app/network',  icon: Share2,        label: 'HQ Network',  adminOnly: true },
       { to: '/app/logs',     icon: FileText,      label: 'Audit Logs',  adminOnly: true },
       { to: '/app/admin',    icon: Crown,         label: 'Admin Panel', adminOnly: true },
       { to: '/app/policies', icon: ClipboardList, label: 'Policies',    adminOnly: true },
