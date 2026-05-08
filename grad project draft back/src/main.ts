@@ -1,7 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { hijackConsole } from './system-logs';
 
 async function bootstrap() {
+  hijackConsole();
   const app = await NestFactory.create(AppModule);
   
   // Enable wide-open CORS for the Election/Vite frontend
