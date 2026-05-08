@@ -98,6 +98,8 @@ export default function Dashboard() {
       localStorage.removeItem('vpn_connected_at')
       localStorage.removeItem('vpn_active_session_id')
     }
+    // Dispatch event to notify other components (e.g. AppShell)
+    window.dispatchEvent(new Event('connection-update'))
   }, [status])
 
   // Persist activeSessionId

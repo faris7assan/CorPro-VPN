@@ -45,9 +45,11 @@ export default function AppShell() {
       setConnectionStatus(localStorage.getItem('vpn_connection_status') || 'disconnected')
     }
     window.addEventListener('compliance-update', handler)
+    window.addEventListener('connection-update', handler)
     window.addEventListener('storage', handler)
     return () => {
       window.removeEventListener('compliance-update', handler)
+      window.removeEventListener('connection-update', handler)
       window.removeEventListener('storage', handler)
     }
   }, [])
