@@ -5,7 +5,7 @@ export const hqGateway = {
   name: "Corpo VPN Gateway",
   location: "Contabo VPS — Germany",
   gatewayIp: "203.0.113.50",
-  protocol: "WireGuard",
+  protocol: "Corpo Tunnel",
   encryption: "ChaCha20-Poly1305",
   uptime: "99.99%",
   load: 12,
@@ -64,7 +64,7 @@ export const liveLogs = [
 // APP FEATURES (Landing Page)
 // ============================================================
 export const appFeatures = [
-  { title: "WireGuard Tunnel", description: "Ultra-fast encrypted tunnel using the next-gen WireGuard protocol." },
+  { title: "Corpo VPN Tunnel", description: "Ultra-fast encrypted tunnel using the next-gen protocol." },
   { title: "Device Compliance", description: "Ensures your workstation meets corporate security standards." },
   { title: "Seamless MFA", description: "Integrated authentication with company identity providers." },
   { title: "Admin Controlled", description: "Policies and access levels managed by corporate IT." },
