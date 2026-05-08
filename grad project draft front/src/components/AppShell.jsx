@@ -302,3 +302,7 @@ export default function AppShell() {
             Corpo Tunnel Active
           </div>
         )}
+      </div>
+    </div>
+  )
+}
