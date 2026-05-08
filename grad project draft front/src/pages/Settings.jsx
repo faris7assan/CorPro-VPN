@@ -203,7 +203,7 @@ export default function Settings() {
     setResetLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/password-reset`,
+        redirectTo: `https://corpo-vpn.vercel.app/password-reset.html`,
       });
       if (error) throw new Error(error.message);
 
