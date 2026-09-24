@@ -1,63 +1,71 @@
-> **Repository note:** This is an earlier mirror of the CORPO VPN graduation project. The maintained repository is [faris7assan/corpo-vpn](https://github.com/faris7assan/corpo-vpn). This mirror is kept as part of the project history and portfolio.
-
 # CorPro VPN
 
 ## Zero-Trust VPN Security & WireGuard Automation
 
-CorPro VPN is a Cybersecurity Engineering graduation project demonstrating a Zero-Trust-style remote-access workflow using WireGuard, endpoint compliance checks, centralized peer provisioning, authentication, policy enforcement, and monitoring.
+**CorPro VPN** is a Cybersecurity Engineering graduation project demonstrating a controlled remote-access workflow combining WireGuard, endpoint posture checks, authentication, centralized peer provisioning, network policy enforcement, and security monitoring.
 
-> Status: Educational / portfolio project. Validate and harden every component before production deployment.
+> **Project status:** Educational / portfolio project. Components should be independently validated and hardened before production deployment.
 
-Live project: https://corpo-vpn.vercel.app/
+![CorPro VPN architecture](docs/architecture.svg)
 
-## Security architecture
+### Why this project
 
-~~~text
-User → Authentication / OTP → Endpoint Compliance → Access Decision
-                                      ↓
-                              WireGuard Client
-                                      ↓
-                                 VPN Gateway
-                                      ↓
-                              Firewall / Routing
-                                      ↓
-                              Protected Network
-~~~
+Traditional VPN access can establish an encrypted tunnel without proving that the connecting endpoint meets an organization's security policy. CorPro VPN explores a stronger workflow:
 
-## Key capabilities
+**Identity → device posture → access decision → encrypted tunnel → network policy**
 
-- WireGuard encrypted VPN connectivity
-- Endpoint pre-flight compliance checks
-- Automated VPN peer provisioning
-- OTP-based access control
-- Administrative policy and connection monitoring
-- Firewall/routing integration
-- IP/GeoIP policy enforcement
-- Security logging and operational visibility
+### What I built
 
-## Technology
+- WireGuard-based encrypted VPN connectivity
+- Endpoint compliance checks for security posture signals
+- Authentication / OTP-based access workflow
+- Automated WireGuard peer provisioning
+- Administrative policy and connection visibility
+- Firewall and routing integration
+- IP / GeoIP policy enforcement
+- Security logging and operational monitoring
 
-- Desktop: Electron, React, Vite, Tailwind CSS
-- Backend: Node.js/TypeScript API services
+### Security architecture
+
+User / Device
+→ Authentication + OTP
+→ Endpoint Compliance
+→ Access Decision
+→ WireGuard Tunnel
+→ VPN Gateway
+→ Firewall / Routing / Protected Network
+
+**Important:** compliance is treated as a security signal, not proof that a device is uncompromised.
+
+### Technology
+
+- Client: Electron, React, Vite, Tailwind CSS
+- API: Node.js / TypeScript
 - Data: Supabase / PostgreSQL
 - VPN: WireGuard on Ubuntu Linux
-- Network security: iptables, routing and access policies
+- Network security: iptables, routing, access policies
 
-Compliance is treated as one security signal; it does not prove that a device is free of compromise.
-
-## Documentation
+### Documentation
 
 - Threat Model: docs/THREAT_MODEL.md
 - Security Policy: SECURITY.md
 
-## Security disclaimer
+### Demonstration
 
-Use only on systems and networks you own or are explicitly authorized to administer. Do not commit private keys, credentials, tokens, or production configuration.
+Live project: https://corpo-vpn.vercel.app/
 
-## Author
+### My role
 
-Hassan Faris — Cybersecurity Engineer
+**Hassan Faris — Cybersecurity Engineer**
+
+Focused on the VPN security architecture, WireGuard integration, endpoint compliance workflow, network policy enforcement, and security-oriented project documentation.
+
+### Links
 
 - GitHub: https://github.com/faris7assan
 - LinkedIn: https://www.linkedin.com/in/hassan-faris
 - Portfolio: https://hassanhamedfaris69.base44.app
+
+### Security notice
+
+Use only on systems and networks you own or are explicitly authorized to administer. Never commit private keys, credentials, tokens, or production configuration.
