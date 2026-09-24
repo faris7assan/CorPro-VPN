@@ -1,75 +1,61 @@
-> **Repository note:** This is an earlier mirror of the CORPO VPN graduation project. The maintained portfolio repository is [`faris7assan/corpo-vpn`](https://github.com/faris7assan/corpo-vpn), which contains the latest documentation and security-focused updates.
+# CorPro VPN
 
-<div align="center">
-  <img src="docs/logo.png" alt="Corpo VPN Logo" width="120" />
-  <h1>Corpo VPN</h1>
-  <p><strong>Zero-Trust Enterprise Security & WireGuard Automation</strong></p>
-  <a href="https://corpo-vpn.vercel.app/"><strong>🌐 Live Demo & App Download</strong></a>
-</div>
+## Zero-Trust VPN Security & WireGuard Automation
 
----
+CorPro VPN is a Cybersecurity Engineering graduation project demonstrating a Zero-Trust-style remote-access workflow using WireGuard, endpoint compliance checks, centralized peer provisioning, authentication, policy enforcement, and monitoring.
 
-## 🛡️ Overview
+> Status: Educational / portfolio project. Validate and harden every component before production deployment.
 
-**Corpo VPN** is a graduation project built to modernize remote workforce security. It combines the **WireGuard** protocol with a **Zero-Trust Architecture** that actively scans host machines for compliance before granting network access.
+Live project: https://corpo-vpn.vercel.app/
 
-If a user's machine is compromised (e.g., Antivirus is disabled, Firewall is off, or suspicious processes are running), the tunnel refuses to connect, protecting the internal network from lateral movement.
+## Security architecture
 
-## ✨ Key Features
+~~~text
+User → Authentication / OTP → Endpoint Compliance → Access Decision
+                                      ↓
+                              WireGuard Client
+                                      ↓
+                                 VPN Gateway
+                                      ↓
+                              Firewall / Routing
+                                      ↓
+                              Protected Network
+~~~
 
-- **WireGuard-based encrypted connectivity**
-- **Pre-Flight Compliance Scanning** using native PowerShell APIs for antivirus, firewall, BitLocker, and suspicious processes
-- **Automated Peer Provisioning** through the backend API
-- **Admin Dashboard** with role-based administration and connection monitoring
-- **Secure Authentication** using OTP-based access control
+## Key capabilities
 
-## 🏗️ Technology Stack
+- WireGuard encrypted VPN connectivity
+- Endpoint pre-flight compliance checks
+- Automated VPN peer provisioning
+- OTP-based access control
+- Administrative policy and connection monitoring
+- Firewall/routing integration
+- IP/GeoIP policy enforcement
+- Security logging and operational visibility
 
-### Desktop Client
-- Electron.js, React 18, Vite
-- Tailwind CSS, Phosphor Icons
-- Native Node.js `child_process` for Windows PowerShell querying and tunnel management
+## Technology
 
-### Backend
-- NestJS / TypeScript
-- Supabase / PostgreSQL
-- JWT session management
-- Brevo HTTP API for OTP delivery
+- Desktop: Electron, React, Vite, Tailwind CSS
+- Backend: Node.js/TypeScript API services
+- Data: Supabase / PostgreSQL
+- VPN: WireGuard on Ubuntu Linux
+- Network security: iptables, routing and access policies
 
-### VPN Infrastructure
-- Ubuntu Linux VPS
-- WireGuard (`wg0`)
-- `iptables` NAT forwarding
-- Node.js/Express peer-provisioning service
+Compliance is treated as one security signal; it does not prove that a device is free of compromise.
 
-## 🚀 How It Works
+## Documentation
 
-1. User authenticates with corporate email and OTP.
-2. The client retrieves the assigned VPN configuration.
-3. Endpoint compliance checks evaluate the local security posture.
-4. If the policy requirements are satisfied, the client establishes the WireGuard tunnel.
-5. Connection state and traffic statistics are monitored.
+- Threat Model: docs/THREAT_MODEL.md
+- Security Policy: SECURITY.md
 
-## 🛠️ Development & Build
+## Security disclaimer
 
-### Prerequisites
-- Node.js v18+
-- Windows 10/11 for desktop compliance features
+Use only on systems and networks you own or are explicitly authorized to administer. Do not commit private keys, credentials, tokens, or production configuration.
 
-### Building the Desktop Client
+## Author
 
-```bash
-cd "grad project draft front"
-npm install
-npm run electron:build
-```
+Hassan Faris — Cybersecurity Engineer
 
-## 📚 Maintained Documentation
-
-For the latest portfolio-oriented documentation, architecture, and security policy, use the maintained repository:
-
-**https://github.com/faris7assan/corpo-vpn**
-
-## 📄 License
-
-Created as a Full-Stack Graduation Project (2026).
+- GitHub: https://github.com/faris7assan
+- LinkedIn: https://www.linkedin.com/in/hassan-faris
+- Portfolio: https://hassanhamedfaris69.base44.app
