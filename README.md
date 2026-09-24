@@ -1,3 +1,5 @@
+> **Repository note:** This is an earlier mirror of the CORPO VPN graduation project. The maintained repository is [faris7assan/corpo-vpn](https://github.com/faris7assan/corpo-vpn). This mirror is kept as part of the project history and portfolio.
+
 # CorPro VPN
 
 ## Zero-Trust VPN Security & WireGuard Automation
